@@ -25,38 +25,13 @@ import java.util.Stack;
 
 
 
-public class JSONBuilderExample
+public class JSONBuilder
     extends JSONParser {
-
-    /**
-     * A constant (for internal use) for the JSON-Object type.
-     **/
-    private static final int JSONTYPE_OBJECT   = 0;
-    
-    /**
-     * A constant (for internal use) for the JSON-Array type.
-     **/
-    private static final int JSONTYPE_ARRAY    = 1;
 
     /**
      * This attribute stores the object that was recently popped from the object stack.
      **/
-    private Object lastPoppedObject;
-
-    /**
-     * This field stores the current JSON type (Array, Object, anything else).
-     **/
-    private int currentType;
-    
-    /**
-     * If the current JSON type is an object, this variable stores the object as a Map.
-     **/
-    private Map<String,Object> currentObject;
-
-    /**
-     * If the current JSON type is an array, this variable stores the array as a List.
-     **/
-    private List<Object> currentArray;
+    private JSONValue lastPoppedValue;
     
     /**
      * The current member name (for JSON object type).
@@ -66,85 +41,61 @@ public class JSONBuilderExample
     /**
      * The current member value (for JSON object type).
      **/
-    private Object currentMemberValue;
-
-    /**
-     * The first of three stacks: this stores the JSON type.
-     * All three stacks always have the same size.
-     **/
-    private Stack<Integer> typeStack;
+    private JSONValue currentMemberValue;
     
     /**
-     * The second of three stacks: this stores the JSON value.
-     * All three stacks always have the same size.
+     * The first of two stacks: this stores the JSON value.
+     * Both stacks always have the same size.
      **/
-    private Stack<Object> objectStack;
+    private Stack<JSONValue> valueStack;
     
     /**
-     * The third of three stacks: this stores the member names (for object type).
-     * All three stacks always have the same size.
+     * The second of two stacks: this stores the member names (for object type).
+     * Both stacks always have the same size.
      **/
     private Stack<String> memberNameStack;
 
 
     /**
-     * Creates a new JSONBuilderExample (not case sensitive).
+     * Creates a new JSONBuilder (not case sensitive).
      *
      * @param reader The reader to read from (must not be null).
      * @throws NullPointerException If reader is null.
      **/
-    public JSONBuilderExample( Reader reader ) 
+    public JSONBuilder( Reader reader ) 
 	throws NullPointerException {
 	
 	this( reader, false );
     }
 
     /**
-     * Creates a new JSONBuilderExample.
+     * Creates a new JSONBuilder.
      *
      * @param reader The reader to read from (must not be null).
      * @param caseSensitive A flag indicating if the underlying parser should be case sensitive.
      * @throws NullPointerException If reader is null.
      **/
-    public JSONBuilderExample( Reader reader,
-			       boolean caseSensitive
+    public JSONBuilder( Reader reader,
+			boolean caseSensitive
 			       ) 
 	throws NullPointerException {
 	
 	super( reader, caseSensitive );
 	
-	this.objectStack      = new Stack<Object>();
-	this.typeStack        = new Stack<Integer>();
+	this.valueStack       = new Stack<JSONValue>();
 	this.memberNameStack  = new Stack<String>();
 	
-	this.objectStack.push( new Object() ); // dummy
-	this.typeStack.push( new Integer(-1) );
+	this.valueStack.push( new JSONNull() ); 
 	this.memberNameStack.push( null );
-	this.currentType = -1;
     }    
     
-    private Object popFromStack() {
+    private JSONValue popFromStack() {
 
 	// Remove from stack
-	this.lastPoppedObject = this.objectStack.pop();
-	this.typeStack.pop();	
+	this.lastPoppedValue = this.valueStack.pop();
 	this.currentMemberName = this.memberNameStack.pop();
-
-	this.currentType = this.typeStack.peek().intValue();
-
-	
-	this.currentArray = null;
-	this.currentObject = null;
-	if( this.currentType == JSONTYPE_ARRAY ) 
-	    this.currentArray = (List<Object>)this.objectStack.peek();
-	else if( this.currentType == JSONTYPE_OBJECT ) 
-	    this.currentObject = (Map<String,Object>)this.objectStack.peek();    
-	else 
-	    ; // NOOP
-
-	this.currentMemberValue = this.lastPoppedObject;
-
-	return this.lastPoppedObject;
+	this.currentMemberValue = this.lastPoppedValue;
+	return this.lastPoppedValue;
     }
 
     //--- BEGIN --------- Override parser event methods ---------- //
@@ -158,16 +109,17 @@ public class JSONBuilderExample
 
     @Override
     protected void fireArrayBegin() {	
-	this.currentType = JSONTYPE_ARRAY;
-	this.currentArray = new LinkedList<Object>();
-	this.objectStack.push( this.currentArray );
-	this.typeStack.push( new Integer(JSONTYPE_ARRAY) );
+	this.valueStack.push( new JSONArray( new LinkedList<JSONValue>() ) );
 	this.memberNameStack.push( this.currentMemberName );
     }
 
     @Override
     protected void fireArrayElementEnd() {
-	this.currentArray.add( this.currentMemberValue );
+	try {
+	    this.valueStack.peek().getArray().add( this.currentMemberValue );
+	} catch( JSONException e ) {
+	    throw new RuntimeException( "Fatal error: unexpected JSONException caught when trying to retrieve JSON array.", e );
+	}
     }
     
     @Override
@@ -177,10 +129,7 @@ public class JSONBuilderExample
 
     @Override
     protected void fireObjectBegin() {
-	this.currentType = JSONTYPE_OBJECT;
-	this.currentObject = new TreeMap<String,Object>();
-	this.objectStack.push( this.currentObject );
-	this.typeStack.push( new Integer(JSONTYPE_OBJECT) );
+	this.valueStack.push( new JSONObject( new TreeMap<String,JSONValue>() ) );
 	this.memberNameStack.push( this.currentMemberName );
     }
 
@@ -201,10 +150,13 @@ public class JSONBuilderExample
 
     @Override
     protected void fireMemberEnd() {
-	this.currentObject.put( currentMemberName, 
-				this.currentMemberValue
-				);
-	
+	try {
+	    this.valueStack.peek().getObject().put( this.currentMemberName, 
+						    this.currentMemberValue
+						    );
+	} catch( JSONException e ) {
+	    throw new RuntimeException( "Fatal error: unexpected JSONException caught when trying to retrieve JSON object.", e );
+	}	
     }
 
     @Override
@@ -212,33 +164,36 @@ public class JSONBuilderExample
 	try {
 	    try {
 		// Try to parse Integer
-		this.currentMemberValue = new Integer(number);
+		this.currentMemberValue = new JSONNumber( new Integer(number) );
 	    } catch( NumberFormatException e ) {
-		this.currentMemberValue = new Double(number);
+		this.currentMemberValue = new JSONNumber( new Double(number) );
 	    }
 	} catch( NumberFormatException e ) {
-	    throw new RuntimeException( "Ooops, this number is invalid: " + number );
+	    // Store as a string??? Throw exception??? 
+	    // Actually this means there is a type error in the parser, so this excption should NEVER occur
+	    //throw new RuntimeException( "Ooops, this number is invalid: " + number );
+	    this.currentMemberValue = new JSONString( number );
 	}
     }
 
     @Override
     protected void fireStringRead( String token ) {
-	this.currentMemberValue = token;
+	this.currentMemberValue = new JSONString( token );
     }
     
     @Override
     protected void fireTrueRead( String value ) {
-	this.currentMemberValue = new Boolean(true); // value
+	this.currentMemberValue = new JSONBoolean( new Boolean(true) );  // Also store raw value?
     }
 
     @Override
     protected void fireFalseRead( String value ) {
-	this.currentMemberValue = new Boolean(false); // value
+	this.currentMemberValue = new JSONBoolean( new Boolean(false) ); // Also store raw value?
     }
 
     @Override
     protected void fireNullRead( String value ) {
-	this.currentMemberValue = null; // value;
+	this.currentMemberValue = new JSONNull();                        // Also store raw value?
     }
     //--- END ----------- Override parser event methods ---------- //
    
@@ -258,14 +213,14 @@ public class JSONBuilderExample
 	    System.out.println( "Initialising reader ... " );
 	    Reader reader = new java.io.FileReader( argv[0] );
 	    System.out.println( "Initialising parser/builder ... " );
-	    JSONBuilderExample b  = new JSONBuilderExample( reader, false );
+	    JSONBuilder b  = new JSONBuilder( reader, false );
 	    System.out.println( "Starting the parser ..." );
 	    b.parse();
 	    System.out.println( "Closing the reader ..." );
 	    reader.close();
 	    System.out.println( "Done." );
 
-	    Object json = b.lastPoppedObject;
+	    Object json = b.lastPoppedValue;
 	    System.out.println( "JSON object: " + json.toString() );
 
 	} catch( Exception e ) {

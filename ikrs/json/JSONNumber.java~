@@ -1,0 +1,14 @@
+package ikrs.json;
+
+public class JSONNumber
+    extends AbstractJSONValue {
+
+
+    public JSONNumber( Number n ) {
+	super( JSONValue.TYPE_NUMBER );
+	
+    }
+
+
+
+}

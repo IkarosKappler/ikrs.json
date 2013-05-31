@@ -1,0 +1,25 @@
+
+{
+"name":"telequiz",
+"status":11,
+"floating_value_0": .0,
+"floating_value_1": 1.0,
+"floating_value_2": 1.3e+23,
+"negative_number" : -23,
+"negative_float" : -3.14159265359,
+"error":"The question expired.",
+"question_expired":true,
+"my_parser_also_ignores_the_case" : TrUe,
+"user_exists":true,
+"answer_is_correct":false,
+
+"question_age":2630,
+"my_array" : [],
+"my_array_2" : [ 1,2, 3],
+"my_array_3" : [1, false, { "name" : null }, true ],
+'test_x' : false,
+'test_y' : 'testing',
+'test_A' : "A line- \n -break",
+'test_C' : "An unicode \u00C5 character (should be the danish Ao)",
+"nested_array_0" : [ 1, [2, [3,4,5], 6] ]
+}

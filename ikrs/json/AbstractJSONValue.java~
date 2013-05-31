@@ -1,0 +1,173 @@
+package ikrs.json;
+
+/**
+ * @author Ikaros Kappler
+ * @date 2013-05-31
+ * @version 1.0.0
+ **/
+
+public abstract class AbstractJSONValue {
+
+    /**
+     * The type constant for numbers.
+     **/
+    public static final int TYPE_NUMBER   = 1;
+    
+    /**
+     * The type constant for boolean values.
+     **/
+    public static final int TYPE_BOOLEAN  = 2;
+    
+    /**
+     * The type constant for strings.
+     **/
+    public static final int TYPE_STRING   = 3;
+
+    /**
+     * The type constant for arrays.
+     **/
+    public static final int TYPE_ARRAY    = 4;
+
+    /**
+     * The type constant for objects.
+     **/
+    public static final int TYPE_OBJECT   = 5;
+
+    
+    // public static final JSONValue
+    
+
+    /**
+     * The type of this value.
+     **/
+    private int type;
+
+    
+    protected JSONValue( int type ) 
+	throws IllegalArgumentException {
+
+	super();
+
+	if( !this.isValidTypeID(type) )
+	    throw new IllegalArgumentException( "Invalid JSON type ID (" + type + ")." );
+	
+	this.type = type;
+    }
+    
+    /**
+     * This method indicates if this JSON value is a number.
+     *
+     * @return true if this value represents a number.
+     **/
+    public boolean isNumber() {
+	return this.type == JSONValue.TYPE_NUMBER;
+    }
+
+    /**
+     * This method indicates if this JSON value is a boolean.
+     *
+     * @return true if this value represents a boolean value.
+     **/
+    public boolean isBoolean() {
+	return this.type == JSONValue.TYPE_BOOLEAN;
+    }
+    
+    /**
+     * This method indicates if this JSON value is a string.
+     *
+     * @return true if this value represents a string.
+     **/
+    public boolean isString() {
+	return this.type == JSONValue.TYPE_STRING;
+    }
+    
+    /**
+     * This method indicates if this JSON value is an array.
+     *
+     * @return true if this value represents an array.
+     **/
+    public boolean isArray() {
+	return this.type == JSONValue.TYPE_ARRAY;
+    }
+
+    /**
+     * This method indicates if this JSON value is an object.
+     *
+     * @return true if this value represents an array.
+     **/
+    public boolean isObject() {
+	return this.type == JSONValue.TYPE_OBJECT;
+    }
+    
+    //--- BEGIN ------------------- Abstract methods ---------------------------
+    /**
+     * Get the number from this JSON value.
+     *
+     * @return The number from this JSON value.
+     * @throws JSONException If this value does not represent a number.
+     **/
+    public Number getNumber()
+	throws JSONException {
+	
+	throw new JSONException( "JSON value is not a number." );
+    }
+    
+    /**
+     * Get the boolean from this JSON value.
+     *
+     * @return The boolean value from this JSON value.
+     * @throws JSONException If this value does not represent a boolean value.
+     **/
+    public Boolean getBoolean()
+	throws JSONException {
+	
+	throw new JSONException( "JSON value is not a boolean value." );
+    }
+
+    /**
+     * Get the string from this JSON value.
+     *
+     * @return The string value from this JSON value.
+     * @throws JSONException If this value does not represent a string.
+     **/
+    public String getString()
+	throws JSONException {
+	
+	throw new JSONException( "JSON value is not a string." );
+    }
+
+    /**
+     * Get the array value as a List from this JSON value.
+     *
+     * @return The array from this JSON value. The array is returned as a Mist.
+     * @throws JSONException If this value does not represent an array.
+     **/
+    public List<JSONValue> getArray()
+	throws JSONException {
+	
+	throw new JSONException( "JSON value is not an array." );
+    }
+
+    /**
+     * Get the object value as a Map from this JSON value.
+     *
+     * @return The object from this JSON value. The object is returned as a Map.
+     * @throws JSONException If this value does not represent an object.
+     **/
+    public Map<String,JSONValue> getArray()
+	throws JSONException {
+	
+	throw new JSONException( "JSON value is not an object." );
+    }
+    //--- END --------------------- Abstract methods ---------------------------
+    
+    /**
+     * This method indicates if the passed type ID is supported by this class.
+     *
+     * @param type The type ID.
+     * @return true If the passed type ID is supported by this class
+     **/
+    public boolean isValidTypeID( boolean type ) {
+	return (type >= JSONValue.TYPE_NUMBER && type <= JSONValue.TYPE_OBJECT);
+    }
+}
