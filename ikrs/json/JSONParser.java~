@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.io.Reader;
 
 
-public class Parser {
+public class JSONParser {
 
     /**
      * The underlying reader to read from.
@@ -54,25 +54,25 @@ public class Parser {
 
 
     /**
-     * Creates a new Parser (in case-insensitive mode).
+     * Creates a new JSONParser (in case-insensitive mode).
      *
      * @param reader The reader to read tokens from.
      * @throws NullPointerException If the passed reader is null.
      **/
-    public Parser( Reader reader ) 
+    public JSONParser( Reader reader ) 
 	throws NullPointerException {
 	
 	this( reader, false );
     }
 
     /**
-     * Creates a new Parser.
+     * Creates a new JSONParser.
      *
      * @param reader The reader to read tokens from.
      * @throws NullPointerException If the passed reader is null.
      **/
-    public Parser( Reader reader,
-		   boolean caseSensitive 
+    public JSONParser( Reader reader,
+		       boolean caseSensitive 
 		   ) 
 	throws NullPointerException {
 
@@ -88,6 +88,7 @@ public class Parser {
 	this.columnNumber  = 0;
     }
     
+    //--- BEGIN --------- These methods are meant to be overridden by subclasses ---------- //
     protected void fireArrayBegin() {
 	System.out.println( "--- Array BEGIN" );
     }
@@ -135,6 +136,7 @@ public class Parser {
     protected void fireNullRead( String value ) {
 	System.out.println( "JSON null read: " + value );
     }
+    //--- END ----------- These methods are meant to be overridden by subclasses ---------- //
 
     /**
      * Get the parser's current read position inside the input stream.
@@ -816,7 +818,7 @@ public class Parser {
 	    System.out.println( "Initialising reader ... " );
 	    Reader reader = new java.io.FileReader( argv[0] );
 	    System.out.println( "Initialising parser ... " );
-	    Parser p      = new Parser( reader );
+	    JSONParser p  = new JSONParser( reader );
 	    System.out.println( "Starting the parser ..." );
 	    p.parse();
 	    System.out.println( "Closing the reader ..." );

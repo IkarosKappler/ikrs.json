@@ -8,7 +8,8 @@ package ikrs.json;
  *
  * @author Ikaros kappler
  * @date 2013-05-29
- * @version 1.0.0
+ * @modified 2013-05-31 Ikaros Kappler (fixed the nested array issue).
+ * @version 1.0.1
  **/
 
 import java.io.IOException;
@@ -88,8 +89,21 @@ public class JSONParser {
 	this.columnNumber  = 0;
     }
     
+    //--- BEGIN --------- These methods are meant to be overridden by subclasses ---------- //
+    protected void fireJSONBegin() {
+	System.out.println( "### BEGIN JSON" );
+    }
+
+    protected void fireJSONEnd() {
+	System.out.println( "### END JSON" );
+    }
+    
     protected void fireArrayBegin() {
 	System.out.println( "--- Array BEGIN" );
+    }
+
+    protected void fireArrayElementEnd() {
+	System.out.println( "--- Array element End" );
     }
     
     protected void fireArrayEnd() {
@@ -135,6 +149,7 @@ public class JSONParser {
     protected void fireNullRead( String value ) {
 	System.out.println( "JSON null read: " + value );
     }
+    //--- END ----------- These methods are meant to be overridden by subclasses ---------- //
 
     /**
      * Get the parser's current read position inside the input stream.
@@ -178,9 +193,14 @@ public class JSONParser {
 	throws IOException,
 	       JSONException {
 
-	return readJSON( false,  // no object end expected
-			 false   // no array end expected
-			 );
+	this.fireJSONBegin();
+	boolean jsonValueRead = readJSON( false,  // no object end expected
+					  false   // no array end expected
+					  );
+	if( jsonValueRead )
+	    fireJSONEnd();
+	
+	return jsonValueRead;
     }
     
     /**
@@ -278,7 +298,12 @@ public class JSONParser {
 	    }
 	}
 	    
-	return true;
+	return 
+	    !(
+	      (objectEndExpected && this.currentChar == '}') 
+	      || 
+	      (arrayEndExpected && this.currentChar == ']') // true;
+	      );
     }
 
     /**
@@ -388,27 +413,39 @@ public class JSONParser {
 	       JSONException {
 
 	// Mind the case of an empty array: []
-	if( this.currentChar == ']' ) {
+	/*if( this.currentChar == ']' ) {
 	    this.fireArrayEnd();
 	    return true;
-	}
+	    }*/
 
-	while( this.readJSON(false,true) && this.currentChar != ']' ) {
+	// while( this.readJSON(false,true) && this.currentChar != ']' ) {
+	boolean stop = false;
+	do {
 	    
-	    // array elements are separated by ','
-	    if( this.currentChar != ',' )
-		this.skipWhitespace();
-	    if( this.currentChar == ']' ) {
-		this.fireArrayEnd();
-		return true;
+	    boolean jsonValueRead = this.readJSON(false,true);
+	    stop = (!jsonValueRead || this.currentChar == ']');
+	    if( jsonValueRead )
+		fireArrayElementEnd();
+	    
+	    if( !stop ) {
+		// array elements are separated by ','
+		if( this.currentChar != ',' )
+		    this.skipWhitespace();
+		if( this.currentChar == ']' ) {
+		    this.fireArrayEnd();
+		    this.readChar();
+		    return true;
+		}
+		if( this.currentChar != ',' )
+		    throwJSONException( "Unexpected token: " + this.describeCurrentToken() + ". Failed to read array's value or end of array (expected ',')." );
 	    }
-	    if( this.currentChar != ',' )
-		throwJSONException( "Unexpected token: " + this.describeCurrentToken() + ". Failed to read array's value or end of array (expected ',')." );
+	} while( !stop );
+
+	if( this.currentChar == ']' ) {
+	    this.fireArrayEnd();
+	    this.readChar();
 	}
 
-	if( this.currentChar == ']' )
-	    this.fireArrayEnd();
-	    
 	return (this.currentValue != -1);
     }
 
