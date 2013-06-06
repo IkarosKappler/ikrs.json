@@ -5,8 +5,12 @@ package ikrs.json;
  *
  * @author Ikaros Kappler
  * @date 2013-05-31
+ * @modified 2013-06-04 Ikaros Kappler (added the write method for JSON serialisation).
  * @version 1.0.0
  **/
+
+import java.io.IOException;
+import java.io.Writer;
 
 public class JSONNumber
     extends AbstractJSONValue {
@@ -49,6 +53,20 @@ public class JSONNumber
 	
 	return this.number;
     }
+
+    /**
+     * This method MUST write a valid JSON value to the passed writer.
+     *
+     * @param writer The writer to write to.
+     * @throws IOException If any IO errors occur.
+     **/
+    @Override
+    public void write( Writer writer )
+	throws IOException {
+	
+	writer.write( this.number.toString() );
+    }
+
 
     public String toString() {
 	return this.number.toString();

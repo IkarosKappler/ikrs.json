@@ -1,0 +1,24 @@
+package ikrs.json;
+
+/**
+ * @author Ikaros Kappler
+ * @date 2013-06-05
+ * @version 1.0.0
+ **/
+
+import ikrs.json.JSONValueFactory;
+
+public class RPCJSONValueFactory
+    implements JSONValueFactory {
+    
+    public JSONArray createArray();
+
+    public JSONObject createObject( String membername );
+
+    public JSONNumber createNumber( Number number );
+
+    public JSONBoolean createBoolan( Boolean bool );
+
+    public JSONNull createNull();
+
+}

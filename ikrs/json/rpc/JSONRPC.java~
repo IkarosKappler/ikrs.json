@@ -1,0 +1,57 @@
+package ikrs.json.rpc;
+
+/**
+ * @author Ikaros Kappler
+ * @date 2013-06-03
+ * @version 1.0.0
+ **/
+
+import ikrs.json.JSONException;
+import ikrs.json.JSONValue;
+
+public abstract class JSONRPC {
+    
+    
+    public JSONRPC() {
+	super(); // call object constructor
+    }
+
+    
+    public JSONRPCResponse execute( JSONRPCRequest request ) 
+	throws JSONRPCException {
+	
+	this.checkVersion(request);
+	
+	
+	return null;
+    }
+
+    private void checkVersion( JSONRPCRequest request ) 
+	throws JSONRPCException {
+	
+	// Check version
+	if( request.getVersion() == null )
+	    throw new JSONRPCException( "Cannot handle JSON request: version is not present." );
+	
+	if( request.getVersion().isNull() )
+	    throw new JSONRPCException( "Cannot handle JSON request: version is not specified." );
+	
+	if( !request.getVersion().isNumber() )
+	    throw new JSONRPCException( "Cannot handle JSON request: version seems not to be a number." );
+	
+	// Due to the specification the version number should be EXACTLY "2.0"
+	try {
+	    if( request.getVersion().getNumber().floatValue() < 2.0 ) {
+	
+		// Catch a regular JSON exception (=type exception)
+		throw new JSONRPCException( "Cannot handle JSON request: version is too low." );
+
+	    }
+	} catch( JSONException e ) {
+	    throw new JSONRPCException( "Cannot handle JSON request: version seems to be not a number." );
+	}
+    
+}
+    
+
+}

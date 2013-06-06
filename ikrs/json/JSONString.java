@@ -5,8 +5,12 @@ package ikrs.json;
  *
  * @author Ikaros Kappler
  * @date 2013-05-31
+ * @modified 2013-06-04 Ikaros Kappler (added the write method for JSON serialisation).
  * @version 1.0.0
  **/
+
+import java.io.IOException;
+import java.io.Writer;
 
 public class JSONString
     extends AbstractJSONValue {
@@ -49,6 +53,21 @@ public class JSONString
 	return this.string;
     }
 
+    
+    /**
+     * This method MUST write a valid JSON value to the passed writer.
+     *
+     * @param writer The writer to write to.
+     * @throws IOException If any IO errors occur.
+     **/
+    @Override
+    public void write( Writer writer )
+	throws IOException {
+
+	JSONString.writeJSON( writer, this.string );
+	
+    }
+
 
     /**
      * Note: this method does not (!) return a valid JSON string value!
@@ -56,4 +75,29 @@ public class JSONString
     public String toString() {
 	return this.string;
     }
+
+
+    public static void writeJSON( Writer writer, String string )
+	throws IOException {
+
+    	writer.write( '"' );
+	
+	for( int i = 0; i < string.length(); i++ ) {
+	    
+	    char c = string.charAt(i);
+	    switch( c ) {
+	    case '\'': writer.write( "\\'" ); break;
+	    case '"': writer.write( "\\\"" ); break;
+	    case '\n': writer.write( "\\n" ); break;
+	    case '\t': writer.write( "\\t" ); break;
+	    case '\b': writer.write( "\\b" ); break; 
+		// Escape unicode chars?
+	    default: writer.write( c ); break;
+	    }
+
+	}
+	
+	writer.write( '"' );
+    }
+    
 }

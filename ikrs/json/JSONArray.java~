@@ -10,6 +10,7 @@ package ikrs.json;
 
 import java.util.List;
 
+
 public class JSONArray
     extends AbstractJSONValue {
 
@@ -17,38 +18,43 @@ public class JSONArray
     /**
      * The array value (as a List) if this JSON value (must not be null).
      **/
-    private String string;
+    private List<JSONValue> list;
 
 
 
     /**
-     * Create a new JSON string.
+     * Create a new JSON array.
      * 
-     * @param string The string value this JSON value should have.
+     * @param array The array value this JSON value should have.
      **/
-    public JSONString( String string ) 
+    public JSONArray( List<JSONValue> array ) 
 	throws NullPointerException {
 
-	super( JSONValue.TYPE_STRING );
+	super( JSONValue.TYPE_ARRAY );
 
-	if( string == null )
-	    throw new NullPointerException( "Cannot create a JSON string from null." );
+	if( array == null )
+	    throw new NullPointerException( "Cannot create a JSON array from null." );
 	
-	this.string = string;
+	this.list = array;
     }
 
 
     /**
-     * Get the string from this JSON value.
+     * Get the array value as a List from this JSON value.
      *
-     * @return The string value from this JSON value.
-     * @throws JSONException If this value does not represent a string.
+     * @return The array from this JSON value. The array is returned as a Mist.
+     * @throws JSONException If this value does not represent an array.
      **/
     @Override
-    public String getString()
+    public List<JSONValue> getArray()
 	throws JSONException {
 	
-	return this.string;
+	return this.list;
+    }
+
+
+    public String toString() {
+	return this.list.toString();
     }
 
 }

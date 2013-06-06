@@ -6,36 +6,12 @@ package ikrs.json;
  * @version 1.0.0
  **/
 
-public abstract class AbstractJSONValue {
+import java.util.List;
+import java.util.Map;
 
-    /**
-     * The type constant for numbers.
-     **/
-    public static final int TYPE_NUMBER   = 1;
-    
-    /**
-     * The type constant for boolean values.
-     **/
-    public static final int TYPE_BOOLEAN  = 2;
-    
-    /**
-     * The type constant for strings.
-     **/
-    public static final int TYPE_STRING   = 3;
 
-    /**
-     * The type constant for arrays.
-     **/
-    public static final int TYPE_ARRAY    = 4;
-
-    /**
-     * The type constant for objects.
-     **/
-    public static final int TYPE_OBJECT   = 5;
-
-    
-    // public static final JSONValue
-    
+public abstract class AbstractJSONValue 
+    implements JSONValue {
 
     /**
      * The type of this value.
@@ -43,7 +19,7 @@ public abstract class AbstractJSONValue {
     private int type;
 
     
-    protected JSONValue( int type ) 
+    protected AbstractJSONValue( int type ) 
 	throws IllegalArgumentException {
 
 	super();
@@ -99,7 +75,16 @@ public abstract class AbstractJSONValue {
 	return this.type == JSONValue.TYPE_OBJECT;
     }
     
-    //--- BEGIN ------------------- Abstract methods ---------------------------
+    //--- BEGIN ------------------- Prepare override methods ---------------------------
+    /**
+     * This method indicates if this is JSON NULL.
+     *
+     * @return true if this JSON value is NULL (null).
+     **/
+    public boolean isNull() {
+	return this.type == JSONValue.TYPE_NULL;
+    }
+
     /**
      * Get the number from this JSON value.
      *
@@ -154,12 +139,12 @@ public abstract class AbstractJSONValue {
      * @return The object from this JSON value. The object is returned as a Map.
      * @throws JSONException If this value does not represent an object.
      **/
-    public Map<String,JSONValue> getArray()
+    public Map<String,JSONValue> getObject()
 	throws JSONException {
 	
 	throw new JSONException( "JSON value is not an object." );
     }
-    //--- END --------------------- Abstract methods ---------------------------
+    //--- END --------------------- Prepare override methods ---------------------------
     
     /**
      * This method indicates if the passed type ID is supported by this class.
@@ -167,7 +152,7 @@ public abstract class AbstractJSONValue {
      * @param type The type ID.
      * @return true If the passed type ID is supported by this class
      **/
-    public boolean isValidTypeID( boolean type ) {
-	return (type >= JSONValue.TYPE_NUMBER && type <= JSONValue.TYPE_OBJECT);
+    public boolean isValidTypeID( int type ) {
+	return (type >= JSONValue.TYPE_NULL && type <= JSONValue.TYPE_OBJECT);
     }
 }

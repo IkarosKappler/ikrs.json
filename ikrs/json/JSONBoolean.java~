@@ -8,14 +8,14 @@ package ikrs.json;
  * @version 1.0.0
  **/
 
-public class JSONNumber
+public class JSONBoolean
     extends AbstractJSONValue {
 
 
     /**
      * The boolean value if this JSON value (must not be null).
      **/
-    private boolean bool;
+    private Boolean bool;
 
 
 
@@ -24,29 +24,33 @@ public class JSONNumber
      * 
      * @param bool The boolean value this JSON value should have.
      **/
-    public JSONNumber( Number number ) 
+    public JSONBoolean( Boolean bool ) 
 	throws NullPointerException {
 
-	super( JSONValue.TYPE_NUMBER );
+	super( JSONValue.TYPE_BOOLEAN );
 
-	if( number == null )
-	    throw new NullPointerException( "Cannot create a JSON number from null." );
+	if( bool == null )
+	    throw new NullPointerException( "Cannot create a JSON boolean from null." );
 	
-	this.number = number;
+	this.bool = bool;
     }
 
 
     /**
-     * Get the number from this JSON value.
+     * Get the boolean from this JSON value.
      *
-     * @return The number from this JSON value.
-     * @throws JSONException If this value does not represent a number.
+     * @return The boolean value from this JSON value.
+     * @throws JSONException If this value does not represent a boolean value.
      **/
     @Override
-    public Number getNumber()
+    public Boolean getBoolean()
 	throws JSONException {
 	
-	return this.number;
+	return this.bool;
     }
 
+
+    public String toString() {
+	return this.bool.toString();
+    }
 }

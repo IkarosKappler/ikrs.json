@@ -1,0 +1,38 @@
+package ikrs.json;
+
+/**
+ * @author Ikaros Kappler
+ * @date 2013-06-05
+ * @version 1.0.0
+ **/
+
+import ikrs.json.JSONValueFactory;
+
+public class DefaultJSONValueFactory
+    implements JSONValueFactory {
+
+    public DefaultJSONValueFactory() {
+	super();
+    }
+
+    public JSONArray createArray() {
+	return new JSONArray();
+    }
+
+    public JSONObject createObject( String membername ) {
+	return new JSONObject();
+    }
+
+    public JSONNumber createNumber( Number number ) {
+	return new JSONNumber( number );
+    }
+
+    public JSONBoolean createBoolan( Boolean bool ) {
+	return new JSONBoolean( bool );
+    }
+
+    public JSONNull createNull() {
+	return JSONValue.NULL;
+    }
+
+}

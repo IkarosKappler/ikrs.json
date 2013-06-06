@@ -1,0 +1,42 @@
+package iks.json.rpc;
+
+/**
+ * The JSON-RPC error interface relating to the JSON-RPC specification.
+ * http://www.jsonrpc.org/specification
+ *
+ * @author Ikaros Kappler
+ * @date 2013-06-03
+ * @version 1.0.0
+ **/
+
+import ikrs.json.JSONValue;
+
+
+public interface JSONRPCError {
+
+    /**
+     * Get the error code for this JSON-RPC error.
+     * Due to the specification the error code MUST be a integer.
+     *
+     * @return The error code for this JSON-RPC error.
+     **/ 
+    public Number getCode();
+
+    /**
+     * Get the error message for this JSON-RPC error.
+     *
+     * @return The error message for this JSON-RPC error.
+     **/
+    public String getMessage();
+
+    /**
+     * Get (optional) additional data from this error object.
+     *
+     * Note that is possible to obtain the data; the 'data' member MAY be
+     * present but set to JSON-null, it may be missing (java null).
+     *
+     * @return The additional error data or JSON-null/null if not available.
+     **/
+    public JSONValue getData();
+
+}

@@ -7,6 +7,7 @@ package ikrs.json;
  *
  * @author Ikaros Kappler
  * @date 2013-05-29
+ * @modified 2013-05-31 Ikaros Kappler (Construction with message param only added).
  * @version 1.0.0
  **/
 
@@ -28,6 +29,13 @@ public class JSONException
      **/
     private int columnNumber;
 
+    /**
+     * Create a new JSONException.
+     **/
+    public JSONException( String message ) {
+	this( message, -1, -1, -1 );
+    }
+			  
 
     /**
      * Create a new JSONException.

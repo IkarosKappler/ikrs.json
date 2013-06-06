@@ -5,9 +5,15 @@ package ikrs.json;
  *
  * @author Ikaros Kappler
  * @date 2013-05-31
- * @version 1.0.0
+ * @modified 2013-06-04 Ikaros Kappler (added the write method for JSON serialisation).
+ * @modified 2013-06-04 Ikaros Kappler (added the constructor with empty param list).
+ * @version 1.0.2
  **/
 
+import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 
@@ -21,6 +27,14 @@ public class JSONArray
     private List<JSONValue> list;
 
 
+    /**
+     * Creates a new empty JSON array backed by an internal ArrayList instance.
+     **/
+    public JSONArray() {
+	super( JSONValue.TYPE_ARRAY );
+
+	this.list = new ArrayList<JSONValue>(1);
+    }
 
     /**
      * Create a new JSON array.
@@ -50,6 +64,41 @@ public class JSONArray
 	throws JSONException {
 	
 	return this.list;
+    }
+
+
+    /**
+     * This method MUST write a valid JSON value to the passed writer.
+     *
+     * @param writer The writer to write to.
+     * @throws IOException If any IO errors occur.
+     **/
+    @Override
+    public void write( Writer writer )
+	throws IOException {
+
+	writer.write( '[' );
+
+	Iterator<JSONValue> iter = this.list.iterator();
+	int i = 0;
+	while( iter.hasNext() ) {
+
+	    JSONValue v = iter.next();
+
+	    if( i > 0 )
+		writer.write( "," );
+	    
+	    writer.write( " " );
+	    
+	    v.write( writer );
+
+	    i++;
+	}
+	
+	if( i > 0 )
+	    writer.write( " " );
+
+	writer.write( ']' );
     }
 
 

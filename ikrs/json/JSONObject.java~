@@ -8,48 +8,53 @@ package ikrs.json;
  * @version 1.0.0
  **/
 
-import java.util.List;
+import java.util.Map;
 
 
-public class JSONArray
+public class JSONObject
     extends AbstractJSONValue {
 
 
     /**
      * The array value (as a List) if this JSON value (must not be null).
      **/
-    private List<JSONValue> list;
+    private Map<String,JSONValue> map;
 
 
 
     /**
-     * Create a new JSON array.
+     * Create a new JSON object.
      * 
-     * @param string The string value this JSON value should have.
+     * @param object The object value this JSON value should have.
      **/
-    public JSONArray( List<JSONValue> array ) 
+    public JSONObject( Map<String,JSONValue> object ) 
 	throws NullPointerException {
 
-	super( JSONValue.TYPE_STRING );
+	super( JSONValue.TYPE_OBJECT );
 
-	if( array == null )
-	    throw new NullPointerException( "Cannot create a JSON array from null." );
+	if( object == null )
+	    throw new NullPointerException( "Cannot create a JSON object from null." );
 	
-	this.list = array;
+	this.map = object;
     }
 
 
     /**
-     * Get the array value as a List from this JSON value.
+     * Get the object value as a Map from this JSON value.
      *
-     * @return The array from this JSON value. The array is returned as a Mist.
-     * @throws JSONException If this value does not represent an array.
+     * @return The object from this JSON value. The object is returned as a Map.
+     * @throws JSONException If this value does not represent an object.
      **/
     @Override
-    public List<JSONValue> getArray()
+    public Map<String,JSONValue> getObject()
 	throws JSONException {
 	
-	return this.list;
+	return this.map;
+    }
+
+
+    public String toString() {
+	return this.map.toString();
     }
 
 }

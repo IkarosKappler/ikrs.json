@@ -1,0 +1,44 @@
+package ikrs.json;
+
+/**
+ * @author Ikaros Kappler
+ * @date 2013-06-05
+ * @version 1.0.0
+ **/
+
+public interface JSONValueFactory {
+    
+    public JSONArray createArray();
+
+    public JSONArray createArray( int arrayIndex );
+    
+    public JSONArray createArray( String memberName );
+
+
+    public JSONArray createObject();
+    
+    public JSONObject createObject( int arraIndex );
+
+    public JSONObject createObject( String memberName );
+
+
+    public JSONNumber createNumber( Number number );
+
+    public JSONNumber createNumber( Number number, int arrayIndex );
+    
+    public JSONNumber createNumber( Number number, String memmberName );
+
+
+    public JSONBoolean createBoolan( Boolean bool );
+
+    public JSONBoolean createBoolan( Boolean bool, int arrayIndex );
+    
+    public JSONBoolean createBoolan( Boolean bool, String memberName );
+
+
+    public JSONNull createNull();
+
+    public JSONNull createNull( int arrayIndex );
+
+    public JSONNull createNull( String memberName );
+}

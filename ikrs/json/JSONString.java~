@@ -13,40 +13,47 @@ public class JSONString
 
 
     /**
-     * The boolean value if this JSON value (must not be null).
+     * The string value if this JSON value (must not be null).
      **/
-    private Boolean
+    private String string;
 
 
 
     /**
-     * Create a new JSON boolean.
+     * Create a new JSON string.
      * 
-     * @param bool The boolean value this JSON value should have.
+     * @param string The string value this JSON value should have.
      **/
-    public JSONNumber( Boolean bool ) 
+    public JSONString( String string ) 
 	throws NullPointerException {
 
-	super( JSONValue.TYPE_BOOLEAN );
+	super( JSONValue.TYPE_STRING );
 
-	if( bool == null )
-	    throw new NullPointerException( "Cannot create a JSON boolean from null." );
+	if( string == null )
+	    throw new NullPointerException( "Cannot create a JSON string from null." );
 	
-	this.bool = bool;
+	this.string = string;
     }
 
 
     /**
-     * Get the boolean from this JSON value.
+     * Get the string from this JSON value.
      *
-     * @return The boolean value from this JSON value.
-     * @throws JSONException If this value does not represent a boolean value.
+     * @return The string value from this JSON value.
+     * @throws JSONException If this value does not represent a string.
      **/
     @Override
-    public Boolean getBoolean()
+    public String getString()
 	throws JSONException {
 	
-	return this.bool;
+	return this.string;
     }
 
+
+    /**
+     * Note: this method does not (!) return a valid JSON string value!
+     **/
+    public String toString() {
+	return this.string;
+    }
 }

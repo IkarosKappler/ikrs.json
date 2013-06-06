@@ -1,0 +1,246 @@
+package ikrs.json;
+
+/**
+ * A JSON builder that uses the JSONParser.
+ *
+ * @author Ikaros Kappler
+ * @date 2013-05-30
+ * @version 1.0.0
+ **/
+
+import java.io.IOException;
+import java.io.Reader;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.Stack;
+
+
+
+public class JSONBuilder
+    extends JSONParser {
+
+    private static final int JSONTYPE_OBJECT   = 0;
+    private static final int JSONTYPE_ARRAY    = 1;
+
+    private Object lastPoppedObject;
+
+    private int currentType;
+    private Map<String,Object> currentObject;
+    private List<Object> currentArray;
+    private String currentMemberName;
+    private Object currentMemberValue;
+
+
+    private Stack<Integer> typeStack;
+    private Stack<Object> objectStack;
+    private Stack<String> memberNameStack;
+
+
+    /**
+     * Creates a new JSONBuilder (not case sensitive).
+     *
+     * @param reader The reader to read from (must not be null).
+     * @throws NullPointerException If reader is null.
+     **/
+    public JSONBuilder( Reader reader ) 
+	throws NullPointerException {
+	
+	this( reader, false );
+    }
+
+    /**
+     * Creates a new JSONBuilder.
+     *
+     * @param reader The reader to read from (must not be null).
+     * @param caseSensitive A flag indicating if the underlying parser should be case sensitive.
+     * @throws NullPointerException If reader is null.
+     **/
+    public JSONBuilder( Reader reader,
+			boolean caseSensitive
+			) 
+	throws NullPointerException {
+	
+	super( reader, caseSensitive );
+	
+	this.objectStack      = new Stack<Object>();
+	this.typeStack        = new Stack<Integer>();
+	this.memberNameStack  = new Stack<String>();
+	
+	this.objectStack.push( new Object() ); // dummy
+	this.typeStack.push( new Integer(-1) );
+	this.memberNameStack.push( null );
+	this.currentType = -1;
+    }    
+    
+    private Object popFromStack() {
+
+	// Remove from stack
+	this.lastPoppedObject = this.objectStack.pop();
+	this.typeStack.pop();	
+	this.currentMemberName = this.memberNameStack.pop();
+
+	this.currentType = this.typeStack.peek().intValue();
+
+	
+	this.currentArray = null;
+	this.currentObject = null;
+	if( this.currentType == JSONTYPE_ARRAY ) 
+	    this.currentArray = (List<Object>)this.objectStack.peek();
+	else if( this.currentType == JSONTYPE_OBJECT ) 
+	    this.currentObject = (Map<String,Object>)this.objectStack.peek();    
+	else 
+	    ; // NOOP
+
+	this.currentMemberValue = this.lastPoppedObject;
+
+	return this.lastPoppedObject;
+    }
+
+    //--- BEGIN --------- Override parser event methods ---------- //
+    @Override
+    protected void fireJSONBegin() {
+	System.out.println( "### BEGIN JSON" );
+    }
+
+    @Override
+    protected void fireJSONEnd() {
+	System.out.println( "### END JSON" );
+    }
+
+    @Override
+    protected void fireArrayBegin() {
+	System.out.println( "--- Array BEGIN" );
+	
+	this.currentType = JSONTYPE_ARRAY;
+	this.currentArray = new LinkedList<Object>();
+	this.objectStack.push( this.currentArray );
+	this.typeStack.push( new Integer(JSONTYPE_ARRAY) );
+	this.memberNameStack.push( this.currentMemberName );
+    }
+
+    @Override
+    protected void fireArrayElementEnd() {
+	System.out.println( "--- Array element End" );
+	
+	this.currentArray.add( this.currentMemberValue );
+    }
+    
+    @Override
+    protected void fireArrayEnd() {
+	System.out.println( "--- Array END" );
+	
+	this.popFromStack();	
+    }
+
+    @Override
+    protected void fireObjectBegin() {
+	System.out.println( "--- Object BEGIN" );
+	
+	this.currentType = JSONTYPE_OBJECT;
+	this.currentObject = new TreeMap<String,Object>();
+	this.objectStack.push( this.currentObject );
+	this.typeStack.push( new Integer(JSONTYPE_OBJECT) );
+	this.memberNameStack.push( this.currentMemberName );
+    }
+
+    @Override
+    protected void fireObjectEnd() {
+	System.out.println( "--- Object END" );
+	
+	this.popFromStack();	
+    }
+
+    @Override
+    protected void fireMemberBegin() {
+	System.out.println( "--- Member BEGIN" );
+	
+	// NOOP
+    }
+
+    @Override
+    protected void fireMemberNameRead( String token ) {
+	System.out.println( "JSON member name read: " + token );
+	
+	this.currentMemberName = token;
+    }
+
+    @Override
+    protected void fireMemberEnd() {
+	System.out.println( "--- Member END" );
+	
+	this.currentObject.put( currentMemberName, 
+				this.currentMemberValue
+				);
+	
+    }
+
+    @Override
+    protected void fireNumberRead( String number ) {
+	System.out.println( "JSON number read: " + number );
+	
+	this.currentMemberValue = number;
+    }
+
+    @Override
+    protected void fireStringRead( String token ) {
+	System.out.println( "JSON string read: " + token );
+
+	this.currentMemberValue = token;
+    }
+    
+    @Override
+    protected void fireTrueRead( String value ) {
+	System.out.println( "JSON true read: " + value );
+	
+	this.currentMemberValue = value;
+    }
+
+    @Override
+    protected void fireFalseRead( String value ) {
+	System.out.println( "JSON false read: " + value );
+	
+	this.currentMemberValue = value;
+    }
+
+    @Override
+    protected void fireNullRead( String value ) {
+	System.out.println( "JSON null read: " + value );
+	
+	this.currentMemberValue = value;
+    }
+    //--- END ----------- Override parser event methods ---------- //
+   
+
+    /**
+     * For testing purposes only.
+     **/
+    public static void main( String[] argv ) {
+
+	if( argv.length == 0 ) {
+	    System.err.println( "Please pass a JSON input file name." );
+	    System.exit( 1 );
+	}
+
+	try {
+
+	    System.out.println( "Initialising reader ... " );
+	    Reader reader = new java.io.FileReader( argv[0] );
+	    System.out.println( "Initialising parser/builder ... " );
+	    JSONBuilder b  = new JSONBuilder( reader, false );
+	    System.out.println( "Starting the parser ..." );
+	    b.parse();
+	    System.out.println( "Closing the reader ..." );
+	    reader.close();
+	    System.out.println( "Done." );
+
+	    Object json = b.lastPoppedObject;
+	    System.out.println( "JSON object: " + json.toString() );
+
+	} catch( Exception e ) {
+	    e.printStackTrace();
+	}
+
+    }
+}
