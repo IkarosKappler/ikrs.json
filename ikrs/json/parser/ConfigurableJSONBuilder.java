@@ -43,6 +43,11 @@ public class ConfigurableJSONBuilder
     private JSONValue currentMemberValue;
     
     /**
+     * ...
+     **/
+    private Integer currentArrayIndex;
+    
+    /**
      * The first of two stacks: this stores the JSON value.
      * Both stacks always have the same size.
      **/
@@ -54,6 +59,13 @@ public class ConfigurableJSONBuilder
      **/
     private Stack<String> memberNameStack;
 
+    /**
+     * A third stack holding the array indices (if in array).
+     **/
+    private Stack<Integer>arrayIndexStack;
+
+    
+    private JSONValueFactory factory;
 
     /**
      * Creates a new JSONBuilder (not case sensitive).
@@ -61,13 +73,15 @@ public class ConfigurableJSONBuilder
      * @param reader The reader to read from (must not be null).
      * @throws NullPointerException If reader is null.
      **/
-    public ConfigurableJSONBuilder( Reader reader ) 
+    public ConfigurableJSONBuilder( Reader reader,
+				    JSONValueFactory factory 
+				    ) 
 	throws NullPointerException {
 	
-	this( reader, false );
+	this( reader, false, factory );
     }
 
-    /**
+    /**1
      * Creates a new JSONBuilder.
      *
      * @param reader The reader to read from (must not be null).
@@ -75,24 +89,30 @@ public class ConfigurableJSONBuilder
      * @throws NullPointerException If reader is null.
      **/
     public ConfigurableJSONBuilder( Reader reader,
-				     boolean caseSensitive
+				    boolean caseSensitive,
+				    JSONValueFactory factory
 			       ) 
 	throws NullPointerException {
 	
 	super( reader, caseSensitive );
 	
+	this.factory          = factory;
+	
 	this.valueStack       = new Stack<JSONValue>();
 	this.memberNameStack  = new Stack<String>();
+	this.arrayIndexStack  = new Stack<Integer>();
 	
 	this.valueStack.push( new JSONNull() ); 
 	this.memberNameStack.push( null );
+	this.arrayIndexStack.push( null );
     }    
     
     private JSONValue popFromStack() {
 
 	// Remove from stack
-	this.lastPoppedValue = this.valueStack.pop();
-	this.currentMemberName = this.memberNameStack.pop();
+	this.lastPoppedValue    = this.valueStack.pop();
+	this.currentMemberName  = this.memberNameStack.pop();
+	this.currentArrayIndex  = this.arrayIndexStack.pop();
 	this.currentMemberValue = this.lastPoppedValue;
 	return this.lastPoppedValue;
     }
@@ -108,14 +128,24 @@ public class ConfigurableJSONBuilder
 
     @Override
     protected void fireArrayBegin() {	
-	this.valueStack.push( new JSONArray( new LinkedList<JSONValue>() ) );
-	this.memberNameStack.push( this.currentMemberName );
+	JSONArray arr = null;
+	if( this.currentMemberName != null )
+	    arr = this.factory.createArray( this.currentMemberName );
+	else if( this.currentArrayIndex != null )
+	    arr = this.factory.createArray( this.currentArrayIndex );
+	else
+	    arr = this.factory.createArray();
+	this.valueStack.push( arr ); // new JSONArray( new LinkedList<JSONValue>() ) );
+	this.memberNameStack.push( this.currentMemberName );  
+	
+	this.currentArrayIndex = new Integer(0);
+	this.arrayIndexStack.push( this.currentArrayIndex );
     }
 
     @Override
     protected void fireArrayElementEnd() {
 	try {
-	    this.valueStack.peek().getArray().add( this.currentMemberValue );
+	    this.valueStack.peek().getArray().add( this.currentMemberValue );		
 	} catch( JSONException e ) {
 	    throw new RuntimeException( "Fatal error: unexpected JSONException caught when trying to retrieve JSON array.", e );
 	}
@@ -128,8 +158,17 @@ public class ConfigurableJSONBuilder
 
     @Override
     protected void fireObjectBegin() {
-	this.valueStack.push( new JSONObject( new TreeMap<String,JSONValue>() ) );
+	JSONObject obj = null;
+	if( this.currentMemberName != null )
+	    obj = this.factory.createObject( this.currentMemberName );
+	else if( this.currentArrayIndex != null )
+	    obj = this.factory.createObject( this.currentArrayIndex );
+	else
+	    obj = this.factory.createObject();
+
+	this.valueStack.push( obj ); // new JSONObject( new TreeMap<String,JSONValue>() ) );
 	this.memberNameStack.push( this.currentMemberName );
+	this.arrayIndexStack.push( this.currentArrayIndex );
     }
 
     @Override
@@ -160,6 +199,7 @@ public class ConfigurableJSONBuilder
 
     @Override
     protected void fireNumberRead( String number ) {
+	/*
 	try {
 	    try {
 		// Try to parse Integer
@@ -173,29 +213,80 @@ public class ConfigurableJSONBuilder
 	    //throw new RuntimeException( "Ooops, this number is invalid: " + number );
 	    this.currentMemberValue = new JSONString( number );
 	}
+	*/
+
+	Number num = null;
+	try {
+	    try {
+		// Try to parse Integer
+		num = new Integer(number);
+	    } catch( NumberFormatException e ) {
+		num = new Double(number);
+	    }
+
+	    if( this.currentMemberName != null )
+		currentMemberValue = this.factory.createNumber( num, this.currentMemberName );
+	    else if( this.currentArrayIndex != null )
+		this.currentMemberValue = this.factory.createNumber( num, this.currentArrayIndex );
+	    else
+		this.currentMemberValue = this.factory.createNumber( num );
+	} catch( NumberFormatException e ) {
+	    // Store as a string??? Throw exception??? 
+	    // Actually this means there is a type error in the parser, so this excption should NEVER occur
+	    throw new RuntimeException( "Ooops, this number is invalid: " + number );
+	    //this.currentMemberValue = new JSONString( number );
+	}
+
+	
     }
 
     @Override
     protected void fireStringRead( String token ) {
-	this.currentMemberValue = new JSONString( token );
+	if( this.currentMemberName != null )
+	    this.currentMemberValue = this.factory.createString( token, this.currentMemberName );
+	else if( this.currentArrayIndex != null )
+	    this.currentMemberValue = this.factory.createString( token, this.currentArrayIndex );
+	else
+	    this.currentMemberValue = this.factory.createString( token );
     }
     
     @Override
     protected void fireTrueRead( String value ) {
-	this.currentMemberValue = new JSONBoolean( new Boolean(true) );  // Also store raw value?
+	if( this.currentMemberName != null )
+	    currentMemberValue = this.factory.createBoolean( new Boolean(true), this.currentMemberName );
+	else if( this.currentArrayIndex != null )
+	    this.currentMemberValue = this.factory.createBoolean( new Boolean(true), this.currentArrayIndex );
+	else
+	    this.currentMemberValue = this.factory.createBoolean( new Boolean(true) );
+	// this.currentMemberValue = new JSONBoolean( new Boolean(true) );  // Also store raw value?
     }
 
     @Override
     protected void fireFalseRead( String value ) {
-	this.currentMemberValue = new JSONBoolean( new Boolean(false) ); // Also store raw value?
+	if( this.currentMemberName != null )
+	    currentMemberValue = this.factory.createBoolean( new Boolean(false), this.currentMemberName );
+	else if( this.currentArrayIndex != null )
+	    this.currentMemberValue = this.factory.createBoolean( new Boolean(false), this.currentArrayIndex );
+	else
+	    this.currentMemberValue = this.factory.createBoolean( new Boolean(false) );
+	// this.currentMemberValue = new JSONBoolean( new Boolean(false) ); // Also store raw value?
     }
 
     @Override
     protected void fireNullRead( String value ) {
-	this.currentMemberValue = new JSONNull();                        // Also store raw value?
+	if( this.currentMemberName != null )
+	    currentMemberValue = this.factory.createNull( this.currentMemberName );
+	else if( this.currentArrayIndex != null )
+	    this.currentMemberValue = this.factory.createNull( this.currentArrayIndex );
+	else
+	    this.currentMemberValue = this.factory.createNull();
+	//this.currentMemberValue = new JSONNull();                        // Also store raw value?
     }
     //--- END ----------- Override parser event methods ---------- //
    
+    public JSONValue getResult() {
+	return this.lastPoppedValue;
+    }
 
     /**
      * For testing purposes only.
@@ -209,10 +300,12 @@ public class ConfigurableJSONBuilder
 
 	try {
 
+	    System.out.println( "Creating JSONValueFactory ... ");
+	    JSONValueFactory factory = new DefaultJSONValueFactory();	    
 	    System.out.println( "Initialising reader ... " );
 	    Reader reader = new java.io.FileReader( argv[0] );
 	    System.out.println( "Initialising parser/builder ... " );
-	    ConfigurableJSONBuilder b  = new ConfigurableJSONBuilder( reader, false );
+	    ConfigurableJSONBuilder b  = new ConfigurableJSONBuilder( reader, false, factory );
 	    System.out.println( "Starting the parser ..." );
 	    long time_start = System.currentTimeMillis();
 	    b.parse();
@@ -223,7 +316,7 @@ public class ConfigurableJSONBuilder
 	    System.out.println( "Parsing and building took " + (time_end - time_start) + " ms." );
 
 	    JSONValue json = b.lastPoppedValue;
-	    System.out.println( "JSON object: " + json.toJSONString() );
+	    System.out.println( "JSON object: " + json.toString() );
 
 	} catch( Exception e ) {
 	    e.printStackTrace();

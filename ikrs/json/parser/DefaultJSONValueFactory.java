@@ -1,16 +1,33 @@
 package ikrs.json.parser;
 
+import ikrs.json.*;
+
+
 /**
+ * A default JSONValueFactory implementation which is meant to be subclassed.
+ *
+ *
+ * All methods just create new JSONValues, except createNull(...) which returns
+ * JSONValue.NULL:
+ *
+ *  - createArray(...) returns 'new JSONArray()'
+ *  - createNumber(...) returns 'new JSONumber(...)'
+ *  - createBoolean(...) returns 'new JSONBoolean(...)'
+ *  - ... and so on ...
+ * 
+ *
  * @author Ikaros Kappler
  * @date 2013-06-05
- * @version 1.0.0
+ * @modified 2013-06-10 Ikaros Kappler (createString methods were still missing).
+ * @version 1.0.1
  **/
-
-import ikrs.json.*;
 
 public class DefaultJSONValueFactory
     implements JSONValueFactory {
 
+    /**
+     * Creates a new default JSONValueFactory.
+     **/
     public DefaultJSONValueFactory() {
 	super();
     }
@@ -34,7 +51,7 @@ public class DefaultJSONValueFactory
      * @return A JSON number inside a different array.
      **/
     public JSONNumber createNumber( Number number, int arrayIndex ) {
-	return this.createNumber( number );
+	return new JSONNumber( number ); // this.createNumber( number );
     }
     
     /**
@@ -46,7 +63,7 @@ public class DefaultJSONValueFactory
      * @return A JSON number inside a object.
      **/
     public JSONNumber createNumber( Number number, String memberName ) {
-	return this.createNumber( number );
+	return new JSONNumber( number ); // this.createNumber( number );
     }
 
 
@@ -69,7 +86,7 @@ public class DefaultJSONValueFactory
      * @return A JSON boolean inside an array.
      **/
     public JSONBoolean createBoolean( Boolean bool, int arrayIndex ) {
-	return this.createBoolean( bool );
+	return new JSONBoolean( bool ); // this.createBoolean( bool );
     }
     
     /**
@@ -81,9 +98,42 @@ public class DefaultJSONValueFactory
      * @return A JSON boolean inside a object.
      **/
     public JSONBoolean createBoolean( Boolean bool, String memberName ) {
-	return this.createBoolean( bool );
+	return new JSONBoolean( bool ); // this.createBoolean( bool );
     }
 
+    /**
+     * This method creates a non-embedded JSON string (first single 
+     * value from the input).
+     *
+     * @return A single JSON string.
+     **/
+    public JSONString createString( String str ) {
+	return new JSONString( str );
+    }
+
+    /**
+     * This method creates a JSON string embedded inside a 
+     * JSON array. The passed integer is the element's array index.
+     *
+     * @param arrayIndex The superior array's index where the new 
+     *                   element is located.
+     * @return A JSON string inside an array.
+     **/
+    public JSONString createString( String str, int arrayIndex ) {
+	return new JSONString( str ); // this.createString( str );
+    }
+    
+    /**
+     * This method creates a JSON string embedded inside a
+     * JSON object. The passed string is the element's member name.
+     *
+     * @param memberName The new boolean's member name inside the
+     *                   superior object.
+     * @return A JSON string inside a object.
+     **/
+    public JSONString createString( String str, String memberName ) {
+	return new JSONString( str ); // this.createString( str );
+    }
 
     /**
      * This method creates a non-embedded JSON null (first single 
@@ -104,7 +154,7 @@ public class DefaultJSONValueFactory
      * @return A JSON null inside an array.
      **/
     public JSONNull createNull( int arrayIndex ) {
-	return this.createNull();
+	return JSONValue.NULL; // this.createNull();
     }
 
     /**
@@ -116,7 +166,7 @@ public class DefaultJSONValueFactory
      * @return A JSON null inside a object.
      **/
     public JSONNull createNull( String memberName ) {
-	return this.createNull();
+	return JSONValue.NULL; // this.createNull();
     }
 
     /**
@@ -138,7 +188,7 @@ public class DefaultJSONValueFactory
      * @return A JSON array inside a different array.
      **/
     public JSONArray createArray( int arrayIndex ) {
-	return this.createArray();
+	return new JSONArray(); // this.createArray();
     }
     
     /**
@@ -150,7 +200,7 @@ public class DefaultJSONValueFactory
      * @return A JSON array inside a object.
      **/
     public JSONArray createArray( String memberName ) {
-	return this.createArray();
+	return new JSONArray(); // this.createArray();
     }
 
 
@@ -173,7 +223,7 @@ public class DefaultJSONValueFactory
      * @return A JSON object inside an array.
      **/
     public JSONObject createObject( int arraIndex ) {
-	return this.createObject();
+	return new JSONObject(); // this.createObject();
     }
 
     /**
@@ -185,29 +235,7 @@ public class DefaultJSONValueFactory
      * @return A JSON object inside a different object.
      **/
     public JSONObject createObject( String memberName ) {
-	return this.createObject();
+	return new JSONObject(); // this.createObject();
     }
-
-    /*
-    public JSONArray createArray() {
-	return new JSONArray();
-    }
-
-    public JSONObject createObject( String membername ) {
-	return new JSONObject();
-    }
-
-    public JSONNumber createNumber( Number number ) {
-	return new JSONNumber( number );
-    }
-
-    public JSONBoolean createBoolan( Boolean bool ) {
-	return new JSONBoolean( bool );
-    }
-
-    public JSONNull createNull() {
-	return JSONValue.NULL;
-    }
-    */
 
 }

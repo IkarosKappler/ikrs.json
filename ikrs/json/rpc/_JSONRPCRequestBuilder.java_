@@ -1,0 +1,90 @@
+package ikrs.json.rpc;
+
+import java.io.IOException;
+import java.io.Reader;
+
+import ikrs.json.*;
+import ikrs.json.parser.*;
+
+/**
+ * @author Ikaros Kappler
+ * @date 2013-06-10
+ * @version 1.0.0
+ * @deprecated
+ **/
+
+public class JSONRPCRequestBuilder 
+    extends ConfigurableJSONBuilder {
+    
+        
+    public JSONRPCRequestBuilder() {
+	super();
+	
+	this.factory = new JSONRPCValueFactory();
+	
+    }
+    
+    public JSONRPCRequest buildRPCRequest( Reader reader ) 
+	throws JSONSyntaxException,
+	       JSONException,
+	       IOException {
+
+	// Create JSONRPCValueFactory 
+	JSONValueFactory factory = new JSONRPCValueFactory();	    
+
+	// Initialising parser/builder 
+	ConfigurableJSONBuilder b  = new ConfigurableJSONBuilder( reader, false, factory );
+	
+	// start the pasrer
+	b.parse();
+
+	JSONValue json = b.getResult();
+	//System.out.println( "JSON object: " + json.toString() );
+	
+	if( !(json instanceof JSONRPCRequest) )
+	    throw new JSONException( "Retrieved value is NOT an instance of JSONRPCRequest. Found: " + json.getClass().getName() );
+	
+	return (JSONRPCRequest)json;
+    }
+
+
+
+
+    /**
+     * For testing purposes only.
+     **/
+    public static void main( String[] argv ) {
+	
+	if( argv.length == 0 ) {
+	    System.err.println( "Please pass a JSON input file name." );
+	    System.exit( 1 );
+	}
+
+	try {
+
+	    System.out.println( "Creating JSONRPCValueFactory ... ");
+	    JSONValueFactory factory = new JSONRPCValueFactory();	    
+	    System.out.println( "Initialising reader ... " );
+	    Reader reader = new java.io.FileReader( argv[0] );
+	    System.out.println( "Initialising parser/builder ... " );
+	    ConfigurableJSONBuilder b  = new ConfigurableJSONBuilder( reader, false, factory );
+	    System.out.println( "Starting the parser ..." );
+	    long time_start = System.currentTimeMillis();
+	    b.parse();
+	    long time_end   = System.currentTimeMillis();
+	    System.out.println( "Closing the reader ..." );
+	    reader.close();
+	    System.out.println( "Done." );
+	    System.out.println( "Parsing and building took " + (time_end - time_start) + " ms." );
+
+	    JSONValue json = b.getResult();
+	    System.out.println( "JSON object: " + json.toString() );
+
+	} catch( Exception e ) {
+	    e.printStackTrace();
+	}
+
+    }
+
+
+}

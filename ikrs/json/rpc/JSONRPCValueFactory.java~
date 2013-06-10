@@ -1,4 +1,4 @@
-package ikrs.json;
+package ikrs.json.rpc;
 
 /**
  * @author Ikaros Kappler
@@ -6,19 +6,25 @@ package ikrs.json;
  * @version 1.0.0
  **/
 
-import ikrs.json.JSONValueFactory;
+import ikrs.json.JSONObject;
+import ikrs.json.parser.DefaultJSONValueFactory;
 
-public class RPCJSONValueFactory
-    implements JSONValueFactory {
+public class JSONRPCValueFactory
+    extends DefaultJSONValueFactory {
     
-    public JSONArray createArray();
+    
+    /**
+     * This method creates a non-embedded JSON object (first single 
+     * value from the input).
+     *
+     * @return A single JSON object.
+     **/
+    @Override
+    public JSONObject createObject() {
+	System.out.println( "PARENT ELEMENT (OBJECT) FOUND." );
+	return new DefaultJSONRPCRequest();
+    }
+    
 
-    public JSONObject createObject( String membername );
-
-    public JSONNumber createNumber( Number number );
-
-    public JSONBoolean createBoolan( Boolean bool );
-
-    public JSONNull createNull();
 
 }

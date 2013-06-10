@@ -5,7 +5,8 @@ package ikrs.json.rpc;
  *
  * @author Ikaros Kappler
  * @date 2013-06-04
- * @version 1.0.0
+ * @modified 2013-06-07 Ikaros Kappler (Constructor with empty param list added).
+ * @version 1.0.1
  **/
 
 import ikrs.json.JSONArray;
@@ -19,13 +20,17 @@ public class DefaultJSONRPCRequest
     extends JSONObject
     implements JSONRPCRequest { 
 
+    public DefaultJSONRPCRequest() {
+	super();
+    }
+
     public DefaultJSONRPCRequest( String method,
 				  JSONArray params,
 				  Number id 
 				  ) {
 	super();
 	
-	this.getMap().put( "jsonrpc", new JSONNumber(new Double("2.0")) );
+	this.getMap().put( "jsonrpc", new JSONString("2.0") ); // Due to the specification this MUST be a string
 	this.getMap().put( "method",  new JSONString(method) );
 	this.getMap().put( "params",  params );
 	this.getMap().put( "id",      new JSONNumber(id) );

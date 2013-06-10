@@ -6,6 +6,10 @@ package ikrs.json;
  * @version 1.0.0
  **/
 
+import java.io.CharArrayWriter;
+import java.io.IOException;
+// import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.List;
 import java.util.Map;
 
@@ -144,8 +148,34 @@ public abstract class AbstractJSONValue
 	
 	throw new JSONException( "JSON value is not an object." );
     }
+
+    /**
+     * This method MUST write a valid JSON value to the passed writer.
+     *
+     * @param writer The writer to write to.
+     * @throws IOException If any IO errors occur.
+     **/
+    public abstract void write( Writer writer )
+	throws IOException;
     //--- END --------------------- Prepare override methods ---------------------------
     
+    /**
+     * Converts this JSON value into a valid JSON string.
+     *
+     * @return This value as a JSON string.
+     **/
+    public String toJSONString() {
+
+	try {
+	    Writer out = new CharArrayWriter( 4 );
+	    this.write( out );
+	    return out.toString(); // new String( out.toCharArray(), "UTF-8" );
+	} catch( IOException e ) {
+	    // This MUST NOT happen
+	    throw new RuntimeException( "Failed to convert object to string by the use of a buffered writer.", e );
+	}
+    }
+
     /**
      * This method indicates if the passed type ID is supported by this class.
      *
@@ -155,4 +185,5 @@ public abstract class AbstractJSONValue
     public boolean isValidTypeID( int type ) {
 	return (type >= JSONValue.TYPE_NULL && type <= JSONValue.TYPE_OBJECT);
     }
+
 }

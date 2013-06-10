@@ -54,6 +54,24 @@ public class JSONNumber
 	return this.number;
     }
 
+
+    /**
+     * This method tries to convert this JSONValue into a JSONNumber.
+     *
+     * If that is not possible (because the contained value does not represent
+     * a number in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON number.
+     * @throws JSONException If this value is not convertible to a number.
+     **/
+    @Override
+    public JSONNumber asJSONNumber()
+	throws JSONException {
+
+	return this;
+    }
+
+
     /**
      * This method MUST write a valid JSON value to the passed writer.
      *

@@ -68,6 +68,23 @@ public class JSONArray
 
 
     /**
+     * This method tries to convert this JSONValue into a JSONArray.
+     *
+     * If that is not possible (because the contained value does not represent
+     * an array in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON array.
+     * @throws JSONException If this value is not convertible to an array.
+     **/
+    @Override
+    public JSONArray asJSONArray()
+	throws JSONException {
+
+	return this;
+    }
+
+
+    /**
      * This method MUST write a valid JSON value to the passed writer.
      *
      * @param writer The writer to write to.
@@ -103,7 +120,7 @@ public class JSONArray
 
 
     public String toString() {
-	return this.list.toString();
+	return this.getClass().getName() + "=" + this.list.toString();
     }
 
 }

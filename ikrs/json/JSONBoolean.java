@@ -56,6 +56,23 @@ public class JSONBoolean
 
 
     /**
+     * This method tries to convert this JSONValue into a JSONBoolean.
+     *
+     * If that is not possible (because the contained value does not represent
+     * a boolean in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON boolean.
+     * @throws JSONException If this value is not convertible to a boolean.
+     **/
+    @Override
+    public JSONBoolean asJSONBoolean()
+	throws JSONException {
+	
+	return this;
+    }
+
+
+    /**
      * This method MUST write a valid JSON value to the passed writer.
      *
      * @param writer The writer to write to.
