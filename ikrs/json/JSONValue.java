@@ -1,17 +1,18 @@
 package ikrs.json;
 
-/**
- * @author Ikaros Kappler
- * @date 2013-05-31
- * @modified 2013-06-04 Ikaros Kappler (added the write method for JSON serialisation).
- * @modified 2013-06-10 Ikaros Kappler (Added the toJSON* methods for explicit type conversion).
- * @version 1.0.2
- **/
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 import java.util.Map;
+
+
+/**
+ * @author Ikaros Kappler
+ * @date 2013-05-31
+ * @modified 2013-06-04 Ikaros Kappler (added the write method for JSON serialisation).
+ * @modified 2013-06-10 Ikaros Kappler (Added the asJSON* methods for explicit type conversion).
+ * @version 1.0.2
+ **/
 
 
 public interface JSONValue {
@@ -108,6 +109,10 @@ public interface JSONValue {
      **/
     public boolean isObject();
     
+
+
+
+
     /**
      * Get the number from this JSON value.
      *
@@ -153,6 +158,8 @@ public interface JSONValue {
     public Map<String,JSONValue> getObject()
 	throws JSONException;
    
+
+
 
  
 
@@ -222,6 +229,8 @@ public interface JSONValue {
     public JSONObject asJSONObject()
 	throws JSONException;
     
+
+
 
 
     /**

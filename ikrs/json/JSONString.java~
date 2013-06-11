@@ -53,6 +53,61 @@ public class JSONString
 	return this.string;
     }
 
+
+    /**
+     * This method tries to convert this JSONValue into a JSONBoolean.
+     *
+     * If that is not possible (because the contained value does not represent
+     * a boolean in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON boolean.
+     * @throws JSONException If this value is not convertible to a boolean.
+     **/
+    public JSONBoolean asJSONBoolean()
+	throws JSONException {
+	
+	// throw new JSONException( "Cannot convert this value (" + this.getTypeName() + ") to a JSON boolean (incompatible types)." );
+	return JSONBoolean.parseJSONBoolean( this.string,
+					     true         // parse case sensitive?
+					     );
+    }
+
+    /**
+     * This method tries to convert this JSONValue into a JSONNumber.
+     *
+     * If that is not possible (because the contained value does not represent
+     * a number in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON number.
+     * @throws JSONException If this value is not convertible to a number.
+     **/
+    public JSONNumber asJSONNumber()
+	throws JSONException {
+
+	// throw new JSONException( "Cannot convert this value (" + this.getTypeName() + ") to a JSON number (incompatible types)." );
+	return JSONNumber.parseJSONNumber( this.string );
+    }
+
+
+    /**
+     * This method tries to convert this JSONValue into a JSONString.
+     *
+     * If that is not possible (because the contained value does not represent
+     * a string in any way) the method will throw an JSONException.
+     *
+     * Note: due to the fact that JSON is usually represented by a string
+     *       EACH JSON VALUE SHOULD BE CONVERTIBLE TO A STRING.
+     *
+     * @return This JSON value as a JSON string.
+     * @throws JSONException If this value is not convertible to a boolean.
+     **/
+    @Override
+    public JSONString asJSONString()
+	throws JSONException {
+
+	return this;
+    }
+
     
     /**
      * This method MUST write a valid JSON value to the passed writer.

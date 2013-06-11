@@ -12,7 +12,9 @@ package ikrs.json;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -66,6 +68,84 @@ public class JSONObject
 	throws JSONException {
 	
 	return this.map;
+    }
+
+
+
+    /**
+     * This method tries to convert this JSONValue into a JSONArray.
+     *
+     * If that is not possible (because the contained value does not represent
+     * an array in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON array.
+     * @throws JSONException If this value is not convertible to an array.
+     **/
+    public JSONArray asJSONArray()
+	throws JSONException {
+
+	//throw new JSONException( "Cannot convert this value (" + this.getTypeName() + ") to a JSON array (incompatible types)." );
+	
+	// As it is possible to convert an array into an object (indices become member names)
+	// it should be possible to re-convert such an object.
+	// This requires the member names to address array indices in a half closed interval [0, n).
+	
+	// Prepare the list with the exact capacity
+	int size = this.getMap().size();
+	Map<Integer,JSONValue> indexMap = new TreeMap<Integer,JSONValue>();
+	
+	// Iterate through all elements
+	Iterator<Map.Entry<String,JSONValue>> iter = this.getMap().entrySet().iterator();
+	while( iter.hasNext() ) {
+
+	    // The tuple (memberName, memberValue)
+	    Map.Entry<String,JSONValue> entry = iter.next();
+	    String memberName = entry.getKey();
+	    if( memberName == null ) // This should not happen!
+		super.asJSONArray(); // this call will raise the default exception
+	    
+	    try {	
+		
+		int index = Integer.parseInt( memberName );
+
+		// Check bounds
+		if( index < 0 || index >= size )
+		    super.asJSONArray();
+
+		// Check if array index is already in use.
+		if( indexMap.get(new Integer(index)) != null )
+		    super.asJSONArray();
+		
+		// Seems OK.
+		indexMap.put( new Integer(index), 
+			      entry.getValue() 
+			      );
+		
+	    } catch( NumberFormatException e ) {
+		
+		// The element name is not a number.
+		// This call will throw the default exception.
+		super.asJSONArray();
+	    }
+
+	}
+	
+
+
+	// The member name set is valid.
+	// Now convert the index map to an array/list
+	List<JSONValue> list = new ArrayList( Math.max(size,1) );
+	Iterator<Integer> indexIter = indexMap.keySet().iterator(); // This is a SORTED SET :)
+	while( indexIter.hasNext() ) {
+
+	    Integer index   = indexIter.next();
+	    JSONValue value = indexMap.get( index );
+	    
+	    list.add( value );
+	    
+	}
+
+	return new JSONArray( list );
     }
 
 
@@ -138,6 +218,51 @@ public class JSONObject
 
     public String toString() {
 	return this.getClass().getName() + "=" + this.map.toString();
+    }
+
+
+    /**
+     * For testing purposes only.
+     **/
+    public static void main( String[] argv ) {
+
+	// Test is array -> object -> array conversion works
+	try {
+	    JSONArray arr_A = new JSONArray();
+	    arr_A.getList().add( new JSONString("A") );
+	    arr_A.getList().add( new JSONString("B") );
+	    arr_A.getList().add( new JSONString("C") );
+	    arr_A.getList().add( new JSONString("D") );
+	    arr_A.getList().add( new JSONString("E") );
+	    arr_A.getList().add( new JSONString("F") );
+	    
+	    System.out.println( "Array created: " + arr_A.toJSONString() );
+	    
+	    System.out.println( "Converting array to object ..." );
+	    JSONObject obj_A = arr_A.asJSONObject();
+	    System.out.println( "Object retrieved: " + obj_A.toJSONString() );
+	    
+	    System.out.println( "Re-converting object to array ... " );
+	    JSONArray arr_B = obj_A.asJSONArray();	    
+	    System.out.println( "Re-retrieved array: " + arr_B.toJSONString() );
+	    
+
+	    System.out.println( "\nRunning one more test ...\n" );
+	    JSONObject obj_X = new JSONObject();
+	    obj_X.getMap().put( "1", new JSONString("a") );
+	    obj_X.getMap().put( "2", new JSONString("b") );
+	    // ... dismiss ('3','c')
+	    obj_X.getMap().put( "4", new JSONString("d") );
+	    System.out.println( "This objec should not be convertible into an array: " + obj_X.toJSONString() );
+	    
+	    
+	    JSONArray arr_Y = obj_X.asJSONArray();
+	    
+	    
+	} catch( Exception e ) {
+	    e.printStackTrace();
+	}
+
     }
 
 }

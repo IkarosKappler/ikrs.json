@@ -1,5 +1,13 @@
 package ikrs.json;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayList;
+// import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+
+
 /**
  * This is the JSON array subclass.
  *
@@ -9,12 +17,6 @@ package ikrs.json;
  * @modified 2013-06-04 Ikaros Kappler (added the constructor with empty param list).
  * @version 1.0.2
  **/
-
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 
 
 public class JSONArray
@@ -85,6 +87,43 @@ public class JSONArray
 
 
     /**
+     * This method tries to convert this JSONValue into a JSONObject.
+     *
+     * If that is not possible (because the contained value does not represent
+     * an object in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON object.
+     * @throws JSONException If this value is not convertible to an object.
+     **/
+    @Override
+    public JSONObject asJSONObject()
+	throws JSONException {
+
+	// throw new JSONException( "Cannot convert this value (" + this.getTypeName() + ") to a JSON array (incompatible types)." );
+	
+	// There is a way to convert an array to an object:
+	//   convert the array indices to object member names.
+	JSONObject obj = new JSONObject();
+
+	// The list iterator returns the list elements in the proper order
+	ListIterator<JSONValue> iter = this.list.listIterator();
+	int i = 0;
+	while( iter.hasNext() ) {
+
+	    JSONValue elem = iter.next();
+	    obj.getMap().put( Integer.toString(i),    // member name
+			      elem                    // member value
+			      );
+	    
+	    i++;
+	}
+	
+	return obj;
+    }
+
+
+
+    /**
      * This method MUST write a valid JSON value to the passed writer.
      *
      * @param writer The writer to write to.
@@ -96,7 +135,7 @@ public class JSONArray
 
 	writer.write( '[' );
 
-	Iterator<JSONValue> iter = this.list.iterator();
+	ListIterator<JSONValue> iter = this.list.listIterator();
 	int i = 0;
 	while( iter.hasNext() ) {
 
@@ -116,6 +155,21 @@ public class JSONArray
 	    writer.write( " " );
 
 	writer.write( ']' );
+    }
+
+
+    
+    /**
+     * This method is a copy of getArray(), but with two differences:
+     * it is protected (only for subclasses) and does not thrown any exceptions.
+     *
+     * Note that this method does not create a copy of the internal list, so
+     * changes to the list reflect this JSONArray!
+     *
+     * @return The internal list, which is never null.
+     **/
+    protected List<JSONValue> getList() {
+	return this.list;
     }
 
 

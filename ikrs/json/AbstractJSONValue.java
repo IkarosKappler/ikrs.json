@@ -1,17 +1,18 @@
 package ikrs.json;
 
-/**
- * @author Ikaros Kappler
- * @date 2013-05-31
- * @modified 2013-06-10 Ikaros Kappler (Added the toJSON* methods for explicit type conversion).
- * @version 1.0.1
- **/
-
 import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
 import java.util.Map;
+
+
+/**
+ * @author Ikaros Kappler
+ * @date 2013-05-31
+ * @modified 2013-06-10 Ikaros Kappler (Added the asJSON* methods for explicit type conversion).
+ * @version 1.0.1
+ **/
 
 
 public abstract class AbstractJSONValue 
@@ -217,7 +218,7 @@ public abstract class AbstractJSONValue
     }
 
 
-     /**
+    /**
      * This method tries to convert this JSONValue into a JSONObject.
      *
      * If that is not possible (because the contained value does not represent

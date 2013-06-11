@@ -70,6 +70,23 @@ public class JSONObject
 
 
     /**
+     * This method tries to convert this JSONValue into a JSONObject.
+     *
+     * If that is not possible (because the contained value does not represent
+     * an object in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON object.
+     * @throws JSONException If this value is not convertible to an object.
+     **/
+    @Override
+    public JSONObject asJSONObject()
+	throws JSONException {
+
+	return this;
+    }
+
+
+    /**
      * This method MUST write a valid JSON value to the passed writer.
      *
      * @param writer The writer to write to.

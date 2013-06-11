@@ -1,5 +1,10 @@
 package ikrs.json;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.util.List;
+import java.util.ArrayList;
+
 /**
  * This is the JSON boolean subclass.
  *
@@ -8,9 +13,6 @@ package ikrs.json;
  * @modified 2013-06-04 Ikaros Kappler (added the write method for JSON serialisation).
  * @version 1.0.0
  **/
-
-import java.io.IOException;
-import java.io.Writer;
 
 
 public class JSONBoolean
@@ -73,6 +75,26 @@ public class JSONBoolean
 
 
     /**
+     * This method tries to convert this JSONValue into a JSONArray.
+     *
+     * If that is not possible (because the contained value does not represent
+     * an array in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON array.
+     * @throws JSONException If this value is not convertible to an array.
+     **/
+    @Override
+    public JSONArray asJSONArray()
+	throws JSONException {
+
+	//throw new JSONException( "Cannot convert this value (" + this.getTypeName() + ") to a JSON array (incompatible types)." );
+	List<JSONValue> list = new ArrayList<JSONValue>(1);
+	list.add( this );
+	return new JSONArray( list );
+    }
+
+
+    /**
      * This method MUST write a valid JSON value to the passed writer.
      *
      * @param writer The writer to write to.
@@ -82,6 +104,7 @@ public class JSONBoolean
     public void write( Writer writer )
 	throws IOException {
 	
+	// Write 'true' or 'false' due to the specification
 	if( this.bool.booleanValue() )
 	    writer.write( "true" );
 	else
@@ -92,4 +115,74 @@ public class JSONBoolean
     public String toString() {
 	return this.bool.toString();
     }
+
+
+
+    /**
+     * This static method is the equivalent to Java's Boolean.parseBoolean(String).
+     * It expects a String containing a number and converts it into a Java Number 
+     * object.
+     *
+     * If the passed string does not represent a boolean the method throws
+     * a NumberFormatException.
+     *
+     * @param str The string to be parsed.
+     * @return The parsed boolean value.
+     * @throws NullPointerException If the passed string is null.
+     * @throws JSONException If the passed string does not represent a boolean.
+     **/
+    public static Boolean parseBoolean( String str, 
+					boolean caseSensitive )
+	throws NullPointerException,
+	       NumberFormatException {
+
+	if( str == null )
+	    throw new NullPointerException( "Cannot parse null to a boolean." );
+	
+	if( caseSensitive )
+	    str = str.toLowerCase();
+
+	
+	// This method only recognizes "true" and "false"!
+	if( str.equals("true") )
+	    return new Boolean( true );
+	else if( str.equals("false") )
+	    return new Boolean( false );
+	else
+	    throw new NumberFormatException( "The passed string does not represent a boolean value: '" + str + "'." );
+    }
+
+    /**
+     * This static method is the equivalent to Java's Boolean.parseBoolean(String). 
+     * It expects a String containing a number and converts it into a JSONBoolean 
+     * object.
+     *
+     * If the passed string does not represent a boolean the method throws
+     * a JSONException.
+     *
+     * @param str The string to be parsed.
+     * @return The parsed JSON number value.
+     * @throws NullPointerException If the passed string is null.
+     * @throws JSONException If the passed string does not represent a number.
+     **/
+    public static JSONBoolean parseJSONBoolean( String str, boolean caseSensitive )
+	throws NullPointerException,
+	       JSONException {
+
+	
+	try {
+	    // Try to convert string into a java value.
+	    Boolean bool = JSONBoolean.parseBoolean( str, caseSensitive );
+
+	    return new JSONBoolean( bool );
+	    
+	} catch( NumberFormatException e ) {
+
+	    throw new JSONException( "The passed string does not represent a valid JSON boolean: '" + str + "'." );
+
+	}
+	
+    }
+    
+    
 }

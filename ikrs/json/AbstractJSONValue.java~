@@ -3,12 +3,12 @@ package ikrs.json;
 /**
  * @author Ikaros Kappler
  * @date 2013-05-31
- * @version 1.0.0
+ * @modified 2013-06-10 Ikaros Kappler (Added the toJSON* methods for explicit type conversion).
+ * @version 1.0.1
  **/
 
 import java.io.CharArrayWriter;
 import java.io.IOException;
-// import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.List;
 import java.util.Map;
@@ -149,6 +149,92 @@ public abstract class AbstractJSONValue
 	throw new JSONException( "JSON value is not an object." );
     }
 
+
+
+    /**
+     * This method tries to convert this JSONValue into a JSONBoolean.
+     *
+     * If that is not possible (because the contained value does not represent
+     * a boolean in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON boolean.
+     * @throws JSONException If this value is not convertible to a boolean.
+     **/
+    public JSONBoolean asJSONBoolean()
+	throws JSONException {
+	
+	throw new JSONException( "Cannot convert this value (" + this.getTypeName() + ") to a JSON boolean (incompatible types)." );
+    }
+
+    /**
+     * This method tries to convert this JSONValue into a JSONNumber.
+     *
+     * If that is not possible (because the contained value does not represent
+     * a number in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON number.
+     * @throws JSONException If this value is not convertible to a number.
+     **/
+    public JSONNumber asJSONNumber()
+	throws JSONException {
+
+	throw new JSONException( "Cannot convert this value (" + this.getTypeName() + ") to a JSON number (incompatible types)." );
+    }
+
+
+    /**
+     * This method tries to convert this JSONValue into a JSONString.
+     *
+     * If that is not possible (because the contained value does not represent
+     * a string in any way) the method will throw an JSONException.
+     *
+     * Note: due to the fact that JSON is usually represented by a string
+     *       EACH JSON VALUE SHOULD BE CONVERTIBLE TO A STRING.
+     *
+     * @return This JSON value as a JSON string.
+     * @throws JSONException If this value is not convertible to a boolean.
+     **/
+    public JSONString asJSONString()
+	throws JSONException {
+
+	throw new JSONException( "Cannot convert this value (" + this.getTypeName() + ") to a JSON string (incompatible types)." );
+    }
+
+    
+    /**
+     * This method tries to convert this JSONValue into a JSONArray.
+     *
+     * If that is not possible (because the contained value does not represent
+     * an array in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON array.
+     * @throws JSONException If this value is not convertible to an array.
+     **/
+    public JSONArray asJSONArray()
+	throws JSONException {
+
+	throw new JSONException( "Cannot convert this value (" + this.getTypeName() + ") to a JSON array (incompatible types)." );
+    }
+
+
+     /**
+     * This method tries to convert this JSONValue into a JSONObject.
+     *
+     * If that is not possible (because the contained value does not represent
+     * an object in any way) the method will throw an JSONException.
+     *
+     * @return This JSON value as a JSON object.
+     * @throws JSONException If this value is not convertible to an object.
+     **/
+    public JSONObject asJSONObject()
+	throws JSONException {
+
+	throw new JSONException( "Cannot convert this value (" + this.getTypeName() + ") to a JSON array (incompatible types)." );
+    }
+
+
+    
+
     /**
      * This method MUST write a valid JSON value to the passed writer.
      *
@@ -158,7 +244,7 @@ public abstract class AbstractJSONValue
     public abstract void write( Writer writer )
 	throws IOException;
     //--- END --------------------- Prepare override methods ---------------------------
-    
+
     /**
      * Converts this JSON value into a valid JSON string.
      *
@@ -184,6 +270,18 @@ public abstract class AbstractJSONValue
      **/
     public boolean isValidTypeID( int type ) {
 	return (type >= JSONValue.TYPE_NULL && type <= JSONValue.TYPE_OBJECT);
+    }
+
+    public String getTypeName() {
+	switch( this.type ) {
+	case JSONValue.TYPE_NULL:    return "NULL";
+	case JSONValue.TYPE_BOOLEAN: return "Boolean";
+	case JSONValue.TYPE_NUMBER:  return "Number";
+	case JSONValue.TYPE_ARRAY:   return "Array";
+	case JSONValue.TYPE_OBJECT:  return "Object"; 
+	case JSONValue.TYPE_STRING:  return "String";
+	default: return "unknown_type";
+	}
     }
 
 }
