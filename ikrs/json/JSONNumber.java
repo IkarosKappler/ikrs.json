@@ -76,6 +76,25 @@ public class JSONNumber
 
 
     /**
+     * This method tries to convert this JSONValue into a JSONString.
+     *
+     * If that is not possible (because the contained value does not represent
+     * a string in any way) the method will throw an JSONException.
+     *
+     * Note: due to the fact that JSON is usually represented by a string
+     *       EACH JSON VALUE SHOULD BE CONVERTIBLE TO A STRING.
+     *
+     * @return This JSON value as a JSON string.
+     * @throws JSONException If this value is not convertible to a boolean.
+     **/
+    public JSONString asJSONString()
+	throws JSONException {
+	
+	return new JSONString( this.number.toString() );
+    }
+
+
+    /**
      * This method tries to convert this JSONValue into a JSONArray.
      *
      * If that is not possible (because the contained value does not represent
@@ -136,13 +155,13 @@ public class JSONNumber
 	
 	try {
 
-	    // Try to parse a floating point number
-	    return Double.parseDouble( str );
+	    // Try to parse an integer first
+	    return Integer.parseInt( str );
 
 	} catch( NumberFormatException e ) {
 
-	    // Was not a float. Try to parse integer then
-	    return Integer.parseInt( str );
+	    // Was not an integer. Try to parse floating point number then.
+	    return Double.parseDouble( str );
 
 	}
 	

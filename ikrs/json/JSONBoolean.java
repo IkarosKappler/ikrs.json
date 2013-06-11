@@ -73,6 +73,28 @@ public class JSONBoolean
 	return this;
     }
 
+    
+    /**
+     * This method tries to convert this JSONValue into a JSONString.
+     *
+     * If that is not possible (because the contained value does not represent
+     * a string in any way) the method will throw an JSONException.
+     *
+     * Note: due to the fact that JSON is usually represented by a string
+     *       EACH JSON VALUE SHOULD BE CONVERTIBLE TO A STRING.
+     *
+     * @return This JSON value as a JSON string.
+     * @throws JSONException If this value is not convertible to a boolean.
+     **/
+    public JSONString asJSONString()
+	throws JSONException {
+	
+	if( this.bool.booleanValue() )
+	    return new JSONString( "true" );
+	else
+	    return new JSONString( "false" );
+    }
+
 
     /**
      * This method tries to convert this JSONValue into a JSONArray.
@@ -174,7 +196,11 @@ public class JSONBoolean
 	    // Try to convert string into a java value.
 	    Boolean bool = JSONBoolean.parseBoolean( str, caseSensitive );
 
-	    return new JSONBoolean( bool );
+	    //return new JSONBoolean( bool );
+	    if( bool.booleanValue() )
+		return JSONValue.TRUE;
+	    else
+		return JSONValue.FALSE;
 	    
 	} catch( NumberFormatException e ) {
 

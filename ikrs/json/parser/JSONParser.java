@@ -507,14 +507,17 @@ public class JSONParser {
 	throws IOException,
 	       JSONSyntaxException {
 
+	if( !this.skipWhitespace() )
+	    throwJSONException( "Unexpected token: " + this.describeCurrentToken() + ". Expected object member or end of object '}'." );
+
 	if( this.currentChar == '}' ) {
 	    return false;
 	}
 
 	this.fireMemberBegin();
 
-	if( !this.skipWhitespace() )
-	    throwJSONException( "Unexpected token: " + this.describeCurrentToken() + ". Expected object member." );
+	//if( !this.skipWhitespace() )
+	//    throwJSONException( "Unexpected token: " + this.describeCurrentToken() + ". Expected object member." );
 	
 	// Next token must be a quoted string! (RFC 4627 only expects double quoted strings)
 	if( this.currentChar != '"' 

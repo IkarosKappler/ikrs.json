@@ -1,12 +1,8 @@
 package ikrs.json.rpc;
 
-/**
- * @author Ikaros Kappler
- * @date 2013-06-03
- * @version 1.0.0
- **/
-
-
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -16,12 +12,22 @@ import java.util.Map;
 //import ikrs.json.JSONObject;
 import ikrs.json.JSONException;
 import ikrs.json.JSONValue;
+import ikrs.json.parser.*;
+
+
+/**
+ * @author Ikaros Kappler
+ * @date 2013-06-03
+ * @version 1.0.0
+ **/
+
+
 
 public class JSONRPC {
     
     
     public JSONRPC() {
-	super(); // call object constructor
+	super();
     }
 
 
@@ -45,8 +51,27 @@ public class JSONRPC {
 	System.out.println( "DO SOMETHING" );
     }
     
+    
+    public JSONRPCResponse execute( String jsonString ) 
+	throws JSONSyntaxException,
+	       JSONException,
+	       JSONRPCException {
+
+	try {
+	    Reader reader = new StringReader( jsonString );
+	    JSONRPCRequest request = this.buildRPCRequest( reader );
+	    reader.close();
+	    
+	    return this.execute( request );
+	} catch( IOException e ) {
+	    throw new JSONRPCException( "Cannot read from json string: " + e.getMessage() );
+	}
+
+    }
+    
     public JSONRPCResponse execute( JSONRPCRequest request ) 
-	throws JSONRPCException {
+	throws JSONRPCException,
+	       JSONException {
 	
 	this.checkVersion(request);
 	
@@ -104,7 +129,8 @@ public class JSONRPC {
     }
 
     private void checkVersion( JSONRPCRequest request ) 
-	throws JSONRPCException {
+	throws JSONRPCException,
+	       JSONException {
 	
 	// Check version
 	if( request.getVersion() == null )
@@ -113,20 +139,20 @@ public class JSONRPC {
 	if( request.getVersion().isNull() )
 	    throwJSONRPCException( "version is not specified." );
 	
-	if( !request.getVersion().isNumber() )
-	    throwJSONRPCException( "version seems not to be a number." );
+	if( !request.getVersion().isString() )
+	    throwJSONRPCException( "version seems not to be a string." );
 	
-	// Due to the specification the version number should be EXACTLY "2.0"
-	try {
-	    if( request.getVersion().getNumber().floatValue() < 2.0 ) {
+	// Due to the specification the version number should be EXACTLY "2.0" (a string!)
+	//try {
+	    if( !request.getVersion().asJSONString().getString().equals("2.0") ) {
 	
 		// Catch a regular JSON exception (=type exception)
-		throwJSONRPCException( "version '" + request.getVersion().getNumber().toString() + "' is too low." );
+		throwJSONRPCException( "bad version number: '" + request.getVersion().getNumber().toString() + "'." );
 
 	    }
-	} catch( JSONException e ) {
-	    throwJSONRPCException( "version is not a number." );
-	}
+	    //} catch( JSONException e ) {
+	    //throwJSONRPCException( "version is not a number." );
+	    //}
 	
     }
 
@@ -202,6 +228,30 @@ public class JSONRPC {
 	}
     }
 
+
+    public JSONRPCRequest buildRPCRequest( Reader reader ) 
+	throws JSONSyntaxException,
+	       JSONException,
+	       IOException {
+
+	// Create JSONRPCValueFactory 
+	JSONValueFactory factory = new JSONRPCValueFactory();	    
+
+	// Initialising parser/builder 
+	ConfigurableJSONBuilder b  = new ConfigurableJSONBuilder( reader, false, factory );
+	
+	// start the pasrer
+	b.parse();
+
+	JSONValue json = b.getResult();
+	//System.out.println( "JSON object: " + json.toString() );
+	
+	if( !(json instanceof JSONRPCRequest) )
+	    throw new JSONException( "Retrieved value is NOT an instance of JSONRPCRequest. Found: " + json.getClass().getName() );
+	
+	return (JSONRPCRequest)json;
+    }
+
     /**
      * For testign purposes only.
      **/
@@ -210,12 +260,10 @@ public class JSONRPC {
 	try {
 	    System.out.println( "Initializing the JSONRPC request ..." );
 
-	    //String requestString = "{\"jsonrpc\"}";
-
 	    
 	    ikrs.json.JSONArray params = new ikrs.json.JSONArray();
 	    params.getArray().add( new ikrs.json.JSONNumber(new Integer(1)) );
-	    params.getArray().add( new ikrs.json.JSONString("test") );
+	    params.getArray().add( new ikrs.json.JSONString("test_A") );
 	    params.getArray().add( new ikrs.json.JSONBoolean(true) );
 	    JSONRPCRequest request = new DefaultJSONRPCRequest( "doAnything",
 								params,
@@ -238,6 +286,9 @@ public class JSONRPC {
 
 	    System.out.println( "Executing the request ..." );
 	    rpc.execute( request );
+
+	    String requestString = "{'jsonrpc' : '2.0', 'method': 'doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }";
+	    rpc.execute( requestString );
 	    
 	    System.out.println( "Done." );
 	

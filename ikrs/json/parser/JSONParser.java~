@@ -1,4 +1,4 @@
-package ikrs.json;
+package ikrs.json.parser;
 
 /**
  * This is a simple JSON parser.
@@ -15,6 +15,7 @@ package ikrs.json;
 import java.io.IOException;
 import java.io.Reader;
 
+import ikrs.json.JSONException;
 
 public class JSONParser {
 
@@ -191,7 +192,7 @@ public class JSONParser {
      **/
     public boolean parse()
 	throws IOException,
-	       JSONException {
+	       JSONSyntaxException {
 
 	this.fireJSONBegin();
 	boolean jsonValueRead = readJSON( false,  // no object end expected
@@ -208,8 +209,8 @@ public class JSONParser {
      * current error offset (and line- and column number).
      **/
     private void throwJSONException( String message ) 
-	throws JSONException {
-	throw new JSONException( message, this.readPosition, this.lineNumber, this.columnNumber );
+	throws JSONSyntaxException {
+	throw new JSONSyntaxException( message, this.readPosition, this.lineNumber, this.columnNumber );
     }
 
     /**
@@ -231,7 +232,7 @@ public class JSONParser {
      **/
     private boolean readJSON( boolean objectEndExpected, boolean arrayEndExpected ) 
 	throws IOException,
-	       JSONException {
+	       JSONSyntaxException {
 	
 	if( !this.skipWhitespace() )
 	    return false;
@@ -323,7 +324,7 @@ public class JSONParser {
      **/
     private boolean readNumber( boolean fireEvent, StringBuffer b  ) 
 	throws IOException,
-	       JSONException {
+	       JSONSyntaxException {
 
 	// Detect any sequence of digits
 	while( this.readChar() && this.isDigit(this.currentChar) )
@@ -360,7 +361,7 @@ public class JSONParser {
      **/
     private boolean readFloatingNumberFrac( boolean fireEvent, StringBuffer b ) 
 	throws IOException,
-	       JSONException {
+	       JSONSyntaxException {
 	
 	// System.out.println( "Read frac: " + b.toString() );
 	// Read frac
@@ -410,7 +411,7 @@ public class JSONParser {
      **/
     private boolean readArray()
 	throws IOException,
-	       JSONException {
+	       JSONSyntaxException {
 
 	// Mind the case of an empty array: []
 	/*if( this.currentChar == ']' ) {
@@ -461,7 +462,7 @@ public class JSONParser {
      **/
     private boolean readObject()
 	throws IOException,
-	       JSONException {
+	       JSONSyntaxException {
 
 	// Mind the case of an empty object: {}
 	if( this.currentChar == '}' ) {
@@ -504,7 +505,7 @@ public class JSONParser {
      **/
     private boolean readObjectMember()
 	throws IOException,
-	       JSONException {
+	       JSONSyntaxException {
 
 	if( this.currentChar == '}' ) {
 	    return false;
@@ -549,7 +550,7 @@ public class JSONParser {
      **/
     private boolean readString( boolean fireEvent, StringBuffer b ) 
 	throws IOException,
-	       JSONException {
+	       JSONSyntaxException {
 
 	// Current token should be '"' (due to RFC 4627),
 	// but I will allow any quotation mark (double and single).
@@ -648,7 +649,7 @@ public class JSONParser {
      **/
     private boolean readTrue( StringBuffer b )
 	throws IOException,
-	       JSONException {
+	       JSONSyntaxException {
 
 	if( !readExpected('r',b) || !readExpected('u',b) || !readExpected('e',b) )
 	    throwJSONException( "Unexpected token: " + this.describeCurrentToken() + "; expected true." );
@@ -669,7 +670,7 @@ public class JSONParser {
      **/
     private boolean readFalse( StringBuffer b )
 	throws IOException,
-	       JSONException {
+	       JSONSyntaxException {
 
 	if( !readExpected('a',b) || !readExpected('l',b) || !readExpected('s',b) || !readExpected('e',b) )
 	    throwJSONException( "Unexpected token: " + this.describeCurrentToken() + "; expected false." );
@@ -690,7 +691,7 @@ public class JSONParser {
      **/
     private boolean readNull( StringBuffer b )
 	throws IOException,
-	       JSONException {
+	       JSONSyntaxException {
 
 	if( !readExpected('u',b) || !readExpected('l',b) || !readExpected('l',b) )
 	    throwJSONException( "Unexpected token: " + this.describeCurrentToken() + "; expected null." );

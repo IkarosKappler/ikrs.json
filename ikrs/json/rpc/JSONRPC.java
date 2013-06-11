@@ -8,8 +8,8 @@ import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 
-//import ikrs.json.JSONArray;
-//import ikrs.json.JSONObject;
+import ikrs.json.JSONArray;
+import ikrs.json.JSONObject;
 import ikrs.json.JSONException;
 import ikrs.json.JSONValue;
 import ikrs.json.parser.*;
@@ -81,6 +81,9 @@ public class JSONRPC {
 	    throwJSONRPCException( "method argument is not a string." );
 
 	
+	JSONValue jsonClass = request.asJSONObject().getObject().get("__jsonclass__");
+	if( jsonClass != null && !jsonClass.isNull() )
+	    throw new JSONRPCException( "The __jsonclass__ param is not supported." );
 
 	
 	try {
@@ -96,14 +99,33 @@ public class JSONRPC {
 	    }
 	    */
 
+
+	    String request_name = request.getMethod().getString();
+	    int pointIndex      = request_name.lastIndexOf(".");
+	    String methodName   = null;
+	    String className    = null;
+	    if( pointIndex == -1 ) {
+		methodName = request_name;
+		// no class name
+	    } else {
+		methodName = request_name.substring(pointIndex+1);
+		className  = request_name.substring(0,pointIndex);
+	    }
+	    
+	    if( methodName.length() == 0 )
+		throw new JSONRPCException( "Method name is empty." );
+	    
+
 	    // On which object to invoke the method?
 	    // For testing purposes: this
 	    Object invocationObject = this;
 	    // ...
 
+      
+
 
 	    // Resolve method (may throw NoSuchMethodException or SecurityException)
-	    Method method = invocationObject.getClass().getMethod( request.getMethod().getString(),
+	    Method method = invocationObject.getClass().getMethod( methodName,
 								   paramClasses 
 								   );
 
@@ -139,20 +161,20 @@ public class JSONRPC {
 	if( request.getVersion().isNull() )
 	    throwJSONRPCException( "version is not specified." );
 	
-	if( !request.getVersion().isString() )
-	    throwJSONRPCException( "version seems not to be a string." );
+	//if( !request.getVersion().isString() )
+	//    throwJSONRPCException( "version seems not to be a string." );
 	
 	// Due to the specification the version number should be EXACTLY "2.0" (a string!)
-	//try {
+	try {
 	    if( !request.getVersion().asJSONString().getString().equals("2.0") ) {
-	
+		
 		// Catch a regular JSON exception (=type exception)
-		throwJSONRPCException( "bad version number: '" + request.getVersion().getNumber().toString() + "'." );
-
+		throwJSONRPCException( "bad version: '" + request.getVersion().getNumber().toString() + "'." );
+		
 	    }
-	    //} catch( JSONException e ) {
-	    //throwJSONRPCException( "version is not a number." );
-	    //}
+	} catch( JSONException e ) {
+	    throwJSONRPCException( "bad version datatype." );
+	}
 	
     }
 
@@ -166,16 +188,34 @@ public class JSONRPC {
 	if( request.getParams() == null || request.getParams().isNull() )
 	    return null;
 
-	Class<?>[] paramClasses = null;
+
 	if( request.getParams().isArray() ) {
-	    // List<JSONValue> paramList = request.getParams().getArray();
-	    paramClasses = new Class<?>[ request.getParams().getArray().size() ];
-	    for( int i = 0; i < request.getParams().getArray().size(); i++ ) {
-		JSONValue param = request.getParams().getArray().get(i);
-		if( param.isNull() )
-		    paramClasses[i] = Object.class;
-		else if( param.isBoolean() )
-		    paramClasses[i] = Boolean.class;
+
+	    return this.createParamClassArrayFromJSONArray( request.getParams().asJSONArray() );
+
+	} else if( request.getParams().isObject() ) {
+	    
+	    return this.createParamClassArrayFromJSONObject( request.getParams().asJSONObject() );
+
+	} else {
+	    throw createJSONRPCException( "params must be an array or an object." );	    
+	}
+    }
+
+
+    private Class<?>[] createParamClassArrayFromJSONArray( JSONArray params ) 
+	throws JSONException,
+	       JSONRPCException {
+
+	// List<JSONValue> paramList = request.getParams().getArray();
+	Class<?>[] paramClasses = new Class<?>[ params.getArray().size() ];
+
+	for( int i = 0; i < params.getArray().size(); i++ ) {
+	    JSONValue param = params.getArray().get(i);
+	    if( param.isNull() )
+		paramClasses[i] = Object.class;
+	    else if( param.isBoolean() )
+		paramClasses[i] = Boolean.class;
 		else if( param.isNumber() ) 
 		    paramClasses[i] = param.getNumber().getClass(); // Double or Integer
 		else if( param.isString() )
@@ -183,13 +223,46 @@ public class JSONRPC {
 		else 
 		    throw new JSONRPCException( "datatype at param " + i +" is not supported in the param list." );
 	    }
+	
+	return paramClasses;
+
+    }
+	
+    /**
+     * This DOES NOT WORK!
+     *
+     * See http://stackoverflow.com/questions/2237803/can-i-obtain-method-parameter-name-using-java-reflection
+     **/
+    private Class<?>[] createParamClassArrayFromJSONObject( JSONObject params ) 
+	throws JSONException,
+	       JSONRPCException {
+
+
+	// First step: find all methods with the matching name
+	String methodName       = "doAnything";
+	Object invocationObject = this;
+	
+	
+	Method[] methods = invocationObject.getClass().getMethods();
+	for( int i = 0; i < methods.length; i++ ) {
+
+	    // Check method's name
+	    if( !methods[i].getName().equals(methodName) )
+		continue;
+
+
+	    // Check param types
+	    // PROBLEM:
+	    //  - getting parameter names is possible if debug information is included during compilation. See this answer for more details
+	    //  - otherwise getting parameter names is not possible
+	    // See http://stackoverflow.com/questions/2237803/can-i-obtain-method-parameter-name-using-java-reflection
 	    
-	    return paramClasses;
-	} else if( request.getParams().isObject() ) {
-	    throw new JSONRPCException( "Sorry, param type 'object' is not yet implemented." );
-	} else {
-	    throw createJSONRPCException( "params must be an array or an object." );	    
+
 	}
+
+
+	throw new JSONRPCException( "Sorry, param type 'object' is not supported in the JSON-RPC implementation." );
+
     }
     
     /**
@@ -265,7 +338,7 @@ public class JSONRPC {
 	    params.getArray().add( new ikrs.json.JSONNumber(new Integer(1)) );
 	    params.getArray().add( new ikrs.json.JSONString("test_A") );
 	    params.getArray().add( new ikrs.json.JSONBoolean(true) );
-	    JSONRPCRequest request = new DefaultJSONRPCRequest( "doAnything",
+	    JSONRPCRequest request = new DefaultJSONRPCRequest( "x.doAnything",
 								params,
 								new Integer(1234)   // id
 								);
@@ -287,8 +360,13 @@ public class JSONRPC {
 	    System.out.println( "Executing the request ..." );
 	    rpc.execute( request );
 
-	    String requestString = "{'jsonrpc' : '2.0', 'method': 'doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }";
+	    String requestString = "{'jsonrpc' : '2.0', 'method': 'y.doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }";
 	    rpc.execute( requestString );
+
+
+	    rpc.execute( 
+			"{'jsonrpc' : '2.0', '__jsonclass__': {}, 'method': 'y.doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }"
+			 );
 	    
 	    System.out.println( "Done." );
 	

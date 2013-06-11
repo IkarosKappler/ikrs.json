@@ -24,7 +24,7 @@ import java.util.Stack;
 import ikrs.json.*;
 
 
-public class ConfigurableJSONBuilder<F extends JSONValueFactory>
+public class ConfigurableJSONBuilder
     extends JSONParser {
 
     /**
@@ -74,7 +74,7 @@ public class ConfigurableJSONBuilder<F extends JSONValueFactory>
      * @throws NullPointerException If reader is null.
      **/
     public ConfigurableJSONBuilder( Reader reader,
-				    F factory 
+				    JSONValueFactory factory 
 				    ) 
 	throws NullPointerException {
 	
@@ -90,7 +90,7 @@ public class ConfigurableJSONBuilder<F extends JSONValueFactory>
      **/
     public ConfigurableJSONBuilder( Reader reader,
 				    boolean caseSensitive,
-				    F factory
+				    JSONValueFactory factory
 			       ) 
 	throws NullPointerException {
 	
