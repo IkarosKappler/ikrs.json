@@ -1,19 +1,23 @@
 package ikrs.json.rpc;
 
+import ikrs.json.JSONObject;
+import ikrs.json.JSONValue;
+
+
+
 /**
- * The JSON-RPC error object interface relating to the JSON-RPC specification.
- * http://www.jsonrpc.org/specification
+ * The default JSONRPCError implementation.
  *
  * @author Ikaros Kappler
  * @date 2013-06-13
  * @version 1.0.0
  **/
 
-import ikrs.json.JSONValue;
 
 
-public interface JSONRPCError
-    extends JSONValue {
+public class DefaultJSONRPCError
+    extends JSONObject
+    implements JSONRPCError {
 
     /**
      * Parse error. 	Invalid JSON was received by the server.
@@ -47,6 +51,24 @@ public interface JSONRPCError
     public static final int CODE_SERVER_ERROR_MIN    = -32000;   // -32000 to -32099;
 
 
+    public DefaultJSONRPCError() {
+	super();
+    }
+
+    public DefaultJSONRPCError( JSONValue code,
+				JSONValue message,
+				JSONValue data
+				) {
+	super();
+	
+	if( code != null )
+	    this.getMap().put( "code", code );
+	if( message != null )
+	    this.getMap().put( "message", message );
+	if( data != null )
+	    this.getMap().put( "data", data );
+
+    }
     
 
     /**
@@ -55,7 +77,9 @@ public interface JSONRPCError
      *
      * @return null if the request has no 'jsonrpc' field.
      **/
-    public JSONValue getVersion();
+    public JSONValue getCode() {
+	return this.getMap().get( "code" );
+    }
 
     /**
      * Get the RPC result of the call.
@@ -63,7 +87,9 @@ public interface JSONRPCError
      *
      * @return The RPC result or JSON-null/Java-null on errors.
      **/
-    public JSONValue getResult();
+    public JSONValue getMessage() {
+	return this.getMap().get( "message" );
+    }
 
     /**
      * Get the error object from the response (if result is null).
@@ -71,18 +97,9 @@ public interface JSONRPCError
      *
      * @return The error result if there were errors.
      **/
-    public JSONValue getError();
-    
-    /**
-     * Get the ID of this response. Each response identifies the related request
-     * by the use of it's unique ID.
-     *
-     * Note that 'notifications' are special requests that expect no response.
-     * A notification is a request without an ID. Server MUST NOT response to
-     * notifications.
-     *
-     * @return The ID of this response (must not be null).
-     **/
-    public JSONValue getID();
+    public JSONValue getData() {
+	return this.getMap().get( "data" );
+    }
+   
 
 }

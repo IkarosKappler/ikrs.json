@@ -15,13 +15,15 @@ import ikrs.json.JSONValue;
 public interface JSONRPCResponse 
     extends JSONValue {
 
+    
+
     /**
      * This method returns the value of the 'jsonrpc' field from this
      * request.
      *
      * @return null if the request has no 'jsonrpc' field.
      **/
-    public String getVersion();
+    public JSONValue getVersion();
 
     /**
      * Get the RPC result of the call.
@@ -37,7 +39,7 @@ public interface JSONRPCResponse
      *
      * @return The error result if there were errors.
      **/
-    public JSONRPCError getError();
+    public JSONValue getError();
     
     /**
      * Get the ID of this response. Each response identifies the related request

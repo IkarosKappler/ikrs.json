@@ -1,0 +1,566 @@
+package ikrs.json.rpc;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
+import ikrs.json.JSONArray;
+import ikrs.json.JSONException;
+import ikrs.json.JSONNumber;
+import ikrs.json.JSONObject;
+import ikrs.json.JSONString;
+import ikrs.json.JSONValue;
+import ikrs.json.parser.*;
+
+
+/**
+ * This is the RPC handler which translates JSONRPC requests into method calls.
+ *
+ * The handler holds a variable set of anonymous objects; each must implement
+ * the RPCTarget interface.
+ *
+ * @author Ikaros Kappler
+ * @date 2013-06-03
+ * @version 1.0.0
+ **/
+
+
+
+public class JSONRPCHandler {
+    
+    /**
+     * Each RPC method is part of an invocation target.
+     * Invocations on anonymous targets (no object name given) require
+     * a default target to be defined (may be null).
+     **/
+    private String defaultInvocationTargetName;
+
+    /**
+     * It is allowed to address different objects to perform the call on.
+     * This map holds all available objects.
+     **/
+    private Map<String,RPCInvocationTarget> targetMap;
+    
+    
+    /**
+     * Create a new empty JSON-RPC handler.
+     **/
+    public JSONRPCHandler() {
+	super();
+	
+	this.targetMap                   = new TreeMap<String,RPCInvocationTarget>();
+	this.defaultInvocationTargetName = null;
+    }
+
+    /**
+     * Add a new invocation target.
+     * If the name already exists the associated target will be overriden.
+     *
+     * @param name               The name to use.
+     * @param target             The target to add.
+     * @param useAsDefaultTarget If true passed the target will be used as the default target.
+     * @return true if the target name already existed before (and was overriden), false otherwise.
+     * @throws NullPointerException If name or target is null.
+     **/
+    public boolean addInvocationTarget( String name, 
+					RPCInvocationTarget target,
+					boolean useAsDefaultTarget
+					) 
+	throws NullPointerException {
+
+	if( name == null )
+	    throw new NullPointerException( "Cannot add invocation targets with null name." );
+	if( target == null )
+	    throw new NullPointerException( "Cannot add null invocation targets." );
+
+	boolean existed = this.targetMap.containsKey( name );
+
+	this.targetMap.put( name, target );
+	if( useAsDefaultTarget )
+	    this.defaultInvocationTargetName = name;
+	
+	return existed;
+    }
+
+    /**
+     * Removes the invocation target with the given name.
+     *
+     * @param name The target's name.
+     * @return true if the target (name) existed and was removed, false otherwise.
+     **/
+    public boolean removeInvocationTarget( String name ) {
+
+	if( name == null )
+	    return false;
+
+	return (this.targetMap.remove(name) != null);
+    }
+
+
+    /**
+     * A helper method to throw canonical exceptions.
+     **/
+    private void throwJSONRPCException( String msg ) 
+	throws JSONRPCException {
+	throw createJSONRPCException( msg );
+    }
+    
+    /**
+     * A helper method to create canonical exceptions.
+     **/
+    private JSONRPCException createJSONRPCException( String msg ) {
+	return new JSONRPCException( "Cannot handle JSON RPC request: " + msg );
+    }
+
+    private JSONRPCResponse createErrorResponse( Exception e, String message, int errorCode, JSONValue id ) {
+	System.out.println( message );
+		
+	// TODO: make a stack-trace object
+	JSONValue data = new JSONString( e.toString() );
+	
+	JSONRPCError error = new DefaultJSONRPCError( new JSONNumber( new Integer(errorCode) ), 
+						      new JSONString(message), 
+						      data );
+	JSONRPCResponse errorResponse = new DefaultJSONRPCResponse( null,   // no result
+								    error,
+								    id
+								    );
+	
+	return errorResponse;
+    }
+
+    
+    public JSONRPCResponse call( String jsonString ) {
+
+	try {
+
+	    Reader reader = new StringReader( jsonString );
+	    JSONRPCRequest request = this.buildRPCRequest( reader );
+	    reader.close();	    
+	    return this.execute( request );
+
+	} catch( IOException e ) {
+	    //throw new JSONRPCException( "Cannot read from json string: " + e.getMessage() );
+	    return createErrorResponse( e, 
+					"IO error: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					null   // no ID
+					);
+	} catch( JSONSyntaxException e ) {
+	    return createErrorResponse( e, 
+					"Parse error: " + e.getMessage(), 
+					JSONRPCError.CODE_PARSE_ERROR,
+					null   // no ID
+					);
+	} catch( JSONException e ) {
+	    return createErrorResponse( e, 
+					"Invalid request: " + e.getMessage(), 
+					JSONRPCError.CODE_INVALID_REQUEST,
+					null   // no ID
+					);
+	} catch( JSONRPCException e ) {
+	    return createErrorResponse( e, 
+					"Unexpected JSON error: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					null   // no ID
+					);
+	}
+
+    }
+    
+    
+    public JSONRPCResponse call( JSONRPCRequest request ) {
+
+	try {
+	    
+	    return this.execute( request );
+
+	} catch( JSONRPCException e ) {
+
+	    return createErrorResponse( e, 
+					"Unexpected JSON-RPC error: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					request.getID()
+					);
+
+	} catch( JSONException e ) {
+	    
+	    return createErrorResponse( e, 
+					"Unexpected JSON error: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					request.getID()
+					);
+
+	}
+    }
+    
+
+
+    private JSONRPCResponse execute( JSONRPCRequest request ) 
+	throws JSONException,
+	       JSONRPCException,
+	       SecurityException {
+	
+	this.checkVersion(request);
+	
+	if( request.getMethod() == null || request.getMethod().isNull() )
+	    throwJSONRPCException( "method argument is null." );
+	if( !request.getMethod().isString() )
+	    throwJSONRPCException( "method argument is not a string." );
+
+	
+	JSONValue jsonClass = request.asJSONObject().getObject().get("__jsonclass__");
+	if( jsonClass != null && !jsonClass.isNull() )
+	    throw new JSONRPCException( "The __jsonclass__ param is not supported." );
+
+	
+	String objectName    = null;
+	String methodName    = null;
+	try {
+	    // May throw JSONException
+	    Class<?>[] paramClasses = this.createParamClassArray( request );
+	    Object[] paramObjects   = this.createParamObjectArray( request );
+
+	    /*
+	    System.out.println( "Param classes: " );
+	    if( paramClasses != null ) {
+		for( int i = 0; i < paramClasses.length; i++ )
+		    System.out.println( "[" + i + "] " + paramClasses[i].getName() );
+	    }
+	    */
+
+
+	    String request_name = request.getMethod().getString();
+	    int pointIndex      = request_name.lastIndexOf(".");
+
+	    
+	    if( pointIndex == -1 ) {
+		methodName = request_name;
+		// no class name
+	    } else {
+		objectName  = request_name.substring(0,pointIndex);
+		methodName = request_name.substring(pointIndex+1);	
+	    }
+	    
+	    if( methodName.length() == 0 )
+		throw new JSONRPCException( "Method name is empty." );
+
+
+	    
+	    // Locate the object to operate on
+	    RPCInvocationTarget invocationTarget = null;
+	    if( objectName == null ) {
+		
+		// There is no object/class name passed. Use default name (if set)
+		if( this.defaultInvocationTargetName != null )
+		    invocationTarget = this.targetMap.get( defaultInvocationTargetName );
+
+	    } else {
+
+		// The call includes an object name -> try to locate target
+		invocationTarget = this.targetMap.get( objectName );
+		if( invocationTarget == null )
+		    throw new JSONRPCException( "Object '" + objectName + "' not found." );
+		
+	    }
+	    
+	    // Object found?
+	    if( invocationTarget == null )
+		throw new JSONRPCException( "Object '" + objectName + "' not found." );
+	   
+      
+
+
+	    // Resolve method (may throw NoSuchMethodException or SecurityException)
+	    Method method = invocationTarget.getClass().getMethod( methodName,
+								   paramClasses 
+								   );
+
+	    if( !invocationTarget.checkMethodInvocation(method) )
+		throw new SecurityException( "Calling '" + request_name + "' is forbidden. " );
+	    
+
+	    Object resultObject = method.invoke( invocationTarget,
+						 paramObjects
+						 );
+	    
+	    // TOTO: the result object needs to be converted to its proper type
+	    JSONValue result;
+	    if( resultObject == null )
+		result = JSONValue.NULL;
+	    else
+		result = new JSONString( resultObject.toString() );
+
+	    return new DefaultJSONRPCResponse( result,
+					       null,   // no error
+					       request.getID()
+					       );
+
+	} catch( NoSuchMethodException e ) {
+	    return createErrorResponse( e, 
+					"Method not found: " + e.getMessage(), 
+					JSONRPCError.CODE_METHOD_NOT_FOUND,
+					request.getID()
+					);
+	} catch( IllegalAccessException e ) {
+	    return createErrorResponse( e, 
+					"Illegal Access: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					request.getID()
+					);
+	} catch( IllegalArgumentException e ) {
+	    return createErrorResponse( e, 
+					"Illegal params: " + e.getMessage(), 
+					JSONRPCError.CODE_INVALID_PARAMS,
+					request.getID()
+					);
+	} catch( InvocationTargetException e ) {
+	    return createErrorResponse( e, 
+					"Invocation error: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					request.getID()
+					);
+	}
+
+    }
+
+    private void checkVersion( JSONRPCRequest request ) 
+	throws JSONRPCException,
+	       JSONException {
+	
+	// Check version
+	if( request.getVersion() == null )
+	    throwJSONRPCException( "version is not present." );
+	
+	if( request.getVersion().isNull() )
+	    throwJSONRPCException( "version is not specified." );
+	
+	//if( !request.getVersion().isString() )
+	//    throwJSONRPCException( "version seems not to be a string." );
+	
+	// Due to the specification the version number should be EXACTLY "2.0" (a string!)
+	try {
+	    if( !request.getVersion().asJSONString().getString().equals("2.0") ) {
+		
+		// Catch a regular JSON exception (=type exception)
+		throwJSONRPCException( "bad version: '" + request.getVersion().getNumber().toString() + "'." );
+		
+	    }
+	} catch( JSONException e ) {
+	    throwJSONRPCException( "bad version datatype." );
+	}
+	
+    }
+
+    /**
+     * 
+     **/
+    private Class<?>[] createParamClassArray( JSONRPCRequest request ) 
+	throws JSONException,
+	       JSONRPCException {
+
+	if( request.getParams() == null || request.getParams().isNull() )
+	    return null;
+
+
+	if( request.getParams().isArray() ) {
+
+	    return this.createParamClassArrayFromJSONArray( request.getParams().asJSONArray() );
+
+	} else if( request.getParams().isObject() ) {
+	    
+	    return this.createParamClassArrayFromJSONObject( request.getParams().asJSONObject() );
+
+	} else {
+	    throw createJSONRPCException( "params must be an array or an object." );	    
+	}
+    }
+
+
+    private Class<?>[] createParamClassArrayFromJSONArray( JSONArray params ) 
+	throws JSONException,
+	       JSONRPCException {
+
+	// List<JSONValue> paramList = request.getParams().getArray();
+	Class<?>[] paramClasses = new Class<?>[ params.getArray().size() ];
+
+	for( int i = 0; i < params.getArray().size(); i++ ) {
+	    JSONValue param = params.getArray().get(i);
+	    if( param.isNull() )
+		paramClasses[i] = Object.class;
+	    else if( param.isBoolean() )
+		paramClasses[i] = Boolean.class;
+		else if( param.isNumber() ) 
+		    paramClasses[i] = param.getNumber().getClass(); // Double or Integer
+		else if( param.isString() )
+		    paramClasses[i] = String.class;
+		else 
+		    throw new JSONRPCException( "datatype at param " + i +" is not supported in the param list." );
+	    }
+	
+	return paramClasses;
+
+    }
+	
+    /**
+     * This DOES NOT WORK!
+     *
+     * See http://stackoverflow.com/questions/2237803/can-i-obtain-method-parameter-name-using-java-reflection
+     **/
+    private Class<?>[] createParamClassArrayFromJSONObject( JSONObject params ) 
+	throws JSONException,
+	       JSONRPCException {
+
+
+	// Check param types
+	// PROBLEM:
+	//  - getting parameter names is possible if debug information is included during compilation. See this answer for more details
+	//  - otherwise getting parameter names is not possible
+	// See http://stackoverflow.com/questions/2237803/can-i-obtain-method-parameter-name-using-java-reflection
+	    
+
+	throw new JSONRPCException( "Sorry, param type 'object' is not supported in the JSON-RPC implementation." );
+
+    }
+    
+    /**
+     * 
+     **/
+    private Object[] createParamObjectArray( JSONRPCRequest request ) 
+	throws JSONException,
+	       JSONRPCException {
+	
+	if( request.getParams() == null || request.getParams().isNull() )
+	    return null;
+
+	Object[] paramObjects = null;
+	if( request.getParams().isArray() ) {
+	    // List<JSONValue> paramList = request.getParams().getArray();
+	    paramObjects = new Object[ request.getParams().getArray().size() ];
+	    for( int i = 0; i < request.getParams().getArray().size(); i++ ) {
+		JSONValue param = request.getParams().getArray().get(i);
+		if( param.isNull() )
+		    paramObjects[i] = null;
+		else if( param.isBoolean() )
+		    paramObjects[i] = param.getBoolean();
+		else if( param.isNumber() ) 
+		    paramObjects[i] = param.getNumber(); // Double or Integer
+		else if( param.isString() )
+		    paramObjects[i] = param.getString();
+		else 
+		    throw new JSONRPCException( "datatype at param " + i +" is not supported in the param list." );
+	    }
+	    
+	    return paramObjects;
+	} else if( request.getParams().isObject() ) {
+	    throw new JSONRPCException( "Sorry, param type 'object' is not yet implemented." );
+	} else {
+	    throw createJSONRPCException( "params must be an array or an object." );
+	}
+    }
+
+
+    public JSONRPCRequest buildRPCRequest( Reader reader ) 
+	throws JSONSyntaxException,
+	       JSONException,
+	       IOException {
+
+	// Create JSONRPCValueFactory 
+	JSONValueFactory factory = new JSONRPCValueFactory();	    
+
+	// Initialising parser/builder 
+	ConfigurableJSONBuilder b  = new ConfigurableJSONBuilder( reader, false, factory );
+	
+	// start the pasrer
+	b.parse();
+
+	JSONValue json = b.getResult();
+	//System.out.println( "JSON object: " + json.toString() );
+	
+	if( !(json instanceof JSONRPCRequest) )
+	    throw new JSONException( "Retrieved value is NOT an instance of JSONRPCRequest. Found: " + json.getClass().getName() );
+	
+	return (JSONRPCRequest)json;
+    }
+
+    /**
+     * For testign purposes only.
+     **/
+    public static void main( String[] argv ) {
+
+	try {
+	    System.out.println( "Initializing the JSONRPC request ..." );
+
+	    JSONRPCResponse response = null;
+	    
+	    ikrs.json.JSONArray params = new ikrs.json.JSONArray();
+	    params.getArray().add( new ikrs.json.JSONNumber(new Integer(1)) );
+	    params.getArray().add( new ikrs.json.JSONString("test_A") );
+	    params.getArray().add( new ikrs.json.JSONBoolean(true) );
+	    JSONRPCRequest request = new DefaultJSONRPCRequest( "doAnything",
+								params,
+								new Integer(1234)   // id
+								);
+	    System.out.println( request.toJSONString() );
+	    
+	    
+	    System.out.println( "Creating JSONRPC ..." );
+	    JSONRPCHandler rpc = new JSONRPCHandler();
+	    rpc.addInvocationTarget( "x", new TestInvocationTarget(), true );
+	    //rpc.addInvocationTarget( "this", new TestInvocationTarget() );
+
+
+	    System.out.println( "Executing the request ..." );
+	    response = rpc.call( request );
+	    System.out.println( "Response: " + response.toJSONString() );
+
+	    String requestString = "{'jsonrpc' : '2.0', 'method': 'doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }";
+	    response = rpc.call( requestString );
+	    System.out.println( "Response: " + response.toJSONString() );
+
+
+	    requestString = "{'jsonrpc' : '2.0', '__jsonclass__': {}, 'method': 'doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }";	
+	    System.out.println( "This request should cause an error, because the '__jsonclass__' param is not supported: " + requestString );
+	    //try {
+		response = rpc.call( requestString );
+		System.out.println( "Response: " + response.toJSONString() );
+		//} catch( JSONRPCException e ) {
+		//System.out.println( "Error: " + e.getMessage() );
+		//}
+
+
+	    requestString = "{'jsonrpc' : '2.0', 'method': 'y.doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }";	
+	    System.out.println( "This request should cause an error, because the object 'y' is unknown: " + requestString );
+	    //try {
+		response = rpc.call( requestString );
+		System.out.println( "Response: " + response.toJSONString() );
+		//} catch( JSONRPCException e ) {
+		//System.out.println( "Error: " + e.getMessage() );
+		//}
+
+
+
+	    requestString = "{'jsonrpc' : '2.0', 'method': 'doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 } }";	
+	    System.out.println( "This request should proceed though there is a trailing '}' at the end. The parser should not read that far: " + requestString );
+	    // try {
+		response = rpc.call( requestString );
+		System.out.println( "Response: " + response.toJSONString() );
+		//} catch( JSONRPCException e ) {
+		//	System.out.println( "Error: " + e.getMessage() );
+		//}
+
+	    
+	    System.out.println( "Done." );
+	
+	} catch( Exception e ) {
+	    e.printStackTrace();
+	}
+	
+	
+    }
+}

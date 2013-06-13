@@ -7,7 +7,8 @@ package ikrs.json;
  * @date 2013-05-31
  * @modified 2013-06-04 Ikaros Kappler (added the write method for JSON serialisation).
  * @modified 2013-06-04 Ikaros Kappler (added constructor with empty param list).
- * @version 1.0.2
+ * @modified 2013-06-13 Ikaros Kappler (silently converting Java null values to JSON null during serialisation).
+ * @version 1.0.3
  **/
 
 import java.io.IOException;
@@ -191,7 +192,11 @@ public class JSONObject
 
 	    writer.write( ": " );
 
-	    entry.getValue().write( writer );
+	    // Convert Java NULL to JSON NULL silently
+	    if( entry.getValue() == null )
+		JSONValue.NULL.write( writer );
+	    else
+		entry.getValue().write( writer );
 
 	    i++;
 	}

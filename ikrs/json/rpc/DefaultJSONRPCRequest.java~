@@ -30,7 +30,7 @@ public class DefaultJSONRPCRequest
 				  ) {
 	super();
 	
-	this.getMap().put( "jsonrpc", new JSONNumber(new Double("2.0")) );
+	this.getMap().put( "jsonrpc", new JSONString("2.0") ); // Due to the specification this MUST be a string
 	this.getMap().put( "method",  new JSONString(method) );
 	this.getMap().put( "params",  params );
 	this.getMap().put( "id",      new JSONNumber(id) );

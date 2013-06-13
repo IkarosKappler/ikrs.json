@@ -1,42 +1,77 @@
 package ikrs.json.rpc;
 
 /**
- * The JSON-RPC error interface relating to the JSON-RPC specification.
+ * The JSON-RPC error object interface relating to the JSON-RPC specification.
  * http://www.jsonrpc.org/specification
  *
  * @author Ikaros Kappler
- * @date 2013-06-03
+ * @date 2013-06-13
  * @version 1.0.0
  **/
 
 import ikrs.json.JSONValue;
 
 
-public interface JSONRPCError {
+public interface JSONRPCError
+    extends JSONValue {
 
     /**
-     * Get the error code for this JSON-RPC error.
-     * Due to the specification the error code MUST be a integer.
-     *
-     * @return The error code for this JSON-RPC error.
-     **/ 
-    public Number getCode();
-
-    /**
-     * Get the error message for this JSON-RPC error.
-     *
-     * @return The error message for this JSON-RPC error.
+     * Parse error. 	Invalid JSON was received by the server.
+     * An error occurred on the server while parsing the JSON text.
      **/
-    public String getMessage();
+    public static final int CODE_PARSE_ERROR         = -32700; 
+    
+    /**
+     * 	Invalid Request. 	The JSON sent is not a valid Request object.
+     **/
+    public static final int CODE_INVALID_REQUEST     = -32600;
+    
+    /**
+     * Method not found. 	The method does not exist / is not available.
+     **/
+    public static final int CODE_METHOD_NOT_FOUND    = -32601;
+    
+    /**
+     * Invalid params. 	Invalid method parameter(s).
+     **/
+    public static final int CODE_INVALID_PARAMS      = -32602;
+    
+    /**
+     * Internal error. 	Internal JSON-RPC error.
+     **/
+    public static final int CODE_INTERNAL_JSON_ERROR = -32603;
 
     /**
-     * Get (optional) additional data from this error object.
+     * Server error. 	Reserved for implementation-defined server-errors.
+     **/
+    public static final int CODE_SERVER_ERROR_MIN    = -32000;   // -32000 to -32099;
+
+
+    
+
+    /**
+     * This method returns the value of the 'jsonrpc' field from this
+     * request.
      *
-     * Note that is possible to obtain the data; the 'data' member MAY be
-     * present but set to JSON-null, it may be missing (java null).
+     * @return null if the request has no 'jsonrpc' field.
+     **/
+    public JSONValue getCode();
+
+    /**
+     * Get the RPC result of the call.
+     * Due to the specification the result MUST be null if there were errors.
      *
-     * @return The additional error data or JSON-null/null if not available.
+     * @return The RPC result or JSON-null/Java-null on errors.
+     **/
+    public JSONValue getMessage();
+
+    /**
+     * Get the error object from the response (if result is null).
+     * Due to the specification the error object MUST be null if there were no errors.
+     *
+     * @return The error result if there were errors.
      **/
     public JSONValue getData();
+   
 
 }

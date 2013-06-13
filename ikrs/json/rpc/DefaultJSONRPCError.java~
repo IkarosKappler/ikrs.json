@@ -1,8 +1,7 @@
 package ikrs.json.rpc;
 
 /**
- * The JSON-RPC error object interface relating to the JSON-RPC specification.
- * http://www.jsonrpc.org/specification
+ * The default JSONRPCError implementation.
  *
  * @author Ikaros Kappler
  * @date 2013-06-13
@@ -55,7 +54,7 @@ public interface JSONRPCError
      *
      * @return null if the request has no 'jsonrpc' field.
      **/
-    public JSONValue getVersion();
+    public JSONValue getCode();
 
     /**
      * Get the RPC result of the call.
@@ -63,7 +62,7 @@ public interface JSONRPCError
      *
      * @return The RPC result or JSON-null/Java-null on errors.
      **/
-    public JSONValue getResult();
+    public JSONValue getMessage();
 
     /**
      * Get the error object from the response (if result is null).
@@ -71,18 +70,7 @@ public interface JSONRPCError
      *
      * @return The error result if there were errors.
      **/
-    public JSONValue getError();
-    
-    /**
-     * Get the ID of this response. Each response identifies the related request
-     * by the use of it's unique ID.
-     *
-     * Note that 'notifications' are special requests that expect no response.
-     * A notification is a request without an ID. Server MUST NOT response to
-     * notifications.
-     *
-     * @return The ID of this response (must not be null).
-     **/
-    public JSONValue getID();
+    public JSONValue getData();
+   
 
 }

@@ -3,7 +3,6 @@ package ikrs.json;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
-// import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -15,7 +14,8 @@ import java.util.ListIterator;
  * @date 2013-05-31
  * @modified 2013-06-04 Ikaros Kappler (added the write method for JSON serialisation).
  * @modified 2013-06-04 Ikaros Kappler (added the constructor with empty param list).
- * @version 1.0.2
+ * @modified 2013-06-13 Ikaros Kappler (silently converting Java null to JSON null during serialisation).
+ * @version 1.0.3
  **/
 
 
@@ -146,7 +146,11 @@ public class JSONArray
 	    
 	    writer.write( " " );
 	    
-	    v.write( writer );
+	    // Silently convert Java null to JSON null
+	    if( v == null )
+		JSONValue.NULL.write( writer );
+	    else
+		v.write( writer );
 
 	    i++;
 	}
