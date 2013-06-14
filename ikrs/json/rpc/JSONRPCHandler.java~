@@ -10,13 +10,20 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import ikrs.json.JSONArray;
-import ikrs.json.JSONObject;
 import ikrs.json.JSONException;
+import ikrs.json.JSONNumber;
+import ikrs.json.JSONObject;
+import ikrs.json.JSONString;
 import ikrs.json.JSONValue;
 import ikrs.json.parser.*;
 
 
 /**
+ * This is the RPC handler which translates JSONRPC requests into method calls.
+ *
+ * The handler holds a variable set of anonymous objects; each must implement
+ * the RPCTarget interface.
+ *
  * @author Ikaros Kappler
  * @date 2013-06-03
  * @version 1.0.0
@@ -24,61 +31,149 @@ import ikrs.json.parser.*;
 
 
 
-public class JSONRPC {
+public class JSONRPCHandler {
     
+    /**
+     * Each RPC method is part of an invocation target.
+     * Invocations on anonymous targets (no object name given) require
+     * a default target to be defined (may be null).
+     **/
+    private String defaultInvocationTargetName;
+
     /**
      * It is allowed to address different objects to perform the call on.
      * This map holds all available objects.
      **/
-    private Map<String,Object> objectMap;
+    private Map<String,RPCInvocationTarget> targetMap;
     
     
-    public JSONRPC() {
+    /**
+     * Create a new empty JSON-RPC handler.
+     **/
+    public JSONRPCHandler() {
 	super();
 	
-	this.objectMap = new TreeMap<String,Object>();
+	this.targetMap                   = new TreeMap<String,RPCInvocationTarget>();
+	this.defaultInvocationTargetName = null;
+    }
+
+    /**
+     * Add a new invocation target.
+     * If the name already exists the associated target will be overriden.
+     *
+     * @param name               The name to use.
+     * @param target             The target to add.
+     * @param useAsDefaultTarget If true passed the target will be used as the default target.
+     * @return true if the target name already existed before (and was overriden), false otherwise.
+     * @throws NullPointerException If name or target is null.
+     **/
+    public boolean addInvocationTarget( String name, 
+					RPCInvocationTarget target,
+					boolean useAsDefaultTarget
+					) 
+	throws NullPointerException {
+
+	if( name == null )
+	    throw new NullPointerException( "Cannot add invocation targets with null name." );
+	if( target == null )
+	    throw new NullPointerException( "Cannot add null invocation targets." );
+
+	boolean existed = this.targetMap.containsKey( name );
+
+	this.targetMap.put( name, target );
+	if( useAsDefaultTarget )
+	    this.defaultInvocationTargetName = name;
+	
+	return existed;
+    }
+
+    /**
+     * Removes the invocation target with the given name.
+     *
+     * @param name The target's name.
+     * @return true if the target (name) existed and was removed, false otherwise.
+     **/
+    public boolean removeInvocationTarget( String name ) {
+
+	if( name == null )
+	    return false;
+
+	return (this.targetMap.remove(name) != null);
     }
 
 
+    /**
+     * A helper method to throw canonical exceptions.
+     **/
     private void throwJSONRPCException( String msg ) 
 	throws JSONRPCException {
 	throw createJSONRPCException( msg );
     }
     
+    /**
+     * A helper method to create canonical exceptions.
+     **/
     private JSONRPCException createJSONRPCException( String msg ) {
 	return new JSONRPCException( "Cannot handle JSON RPC request: " + msg );
     }
 
-    public void doAnything( Integer i, String s, Boolean b ) {
-	System.out.println( "DOING ANYTHING" );
-	System.out.println( " integer param: " + i );
-	System.out.println( " string param:  " + s );
-	System.out.println( " boolean param: " + b );
+    private JSONRPCResponse createErrorResponse( Exception e, String message, int errorCode, JSONValue id ) {
+	System.out.println( message );
+		
+	// TODO: make a stack-trace object
+	JSONValue data = new JSONString( e.toString() );
+	
+	JSONRPCError error = new DefaultJSONRPCError( new JSONNumber( new Integer(errorCode) ), 
+						      new JSONString(message), 
+						      data );
+	JSONRPCResponse errorResponse = new DefaultJSONRPCResponse( null,   // no result
+								    error,
+								    id
+								    );
+	
+	return errorResponse;
     }
+
     
-    public void doSomething() {
-	System.out.println( "DO SOMETHING" );
-    }
-    
-    
-    public JSONRPCResponse execute( String jsonString ) 
-	throws JSONSyntaxException,
-	       JSONException,
-	       JSONRPCException {
+    public JSONRPCResponse call( String jsonString ) {
 
 	try {
+
 	    Reader reader = new StringReader( jsonString );
 	    JSONRPCRequest request = this.buildRPCRequest( reader );
-	    reader.close();
-	    
+	    reader.close();	    
 	    return this.execute( request );
+
 	} catch( IOException e ) {
-	    throw new JSONRPCException( "Cannot read from json string: " + e.getMessage() );
+	    //throw new JSONRPCException( "Cannot read from json string: " + e.getMessage() );
+	    return createErrorResponse( e, 
+					"IO error: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					null   // no ID
+					);
+	} catch( JSONSyntaxException e ) {
+	    return createErrorResponse( e, 
+					"Parse error: " + e.getMessage(), 
+					JSONRPCError.CODE_PARSE_ERROR,
+					null   // no ID
+					);
+	} catch( JSONException e ) {
+	    return createErrorResponse( e, 
+					"Invalid request: " + e.getMessage(), 
+					JSONRPCError.CODE_INVALID_REQUEST,
+					null   // no ID
+					);
+	} catch( JSONRPCException e ) {
+	    return createErrorResponse( e, 
+					"Unexpected JSON error: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					null   // no ID
+					);
 	}
 
     }
     
-    /*
+    
     public JSONRPCResponse call( JSONRPCRequest request ) {
 
 	try {
@@ -87,22 +182,29 @@ public class JSONRPC {
 
 	} catch( JSONRPCException e ) {
 
-	    JSONObject response = new JSONObject();
-	    // response.getMap().
-	    return null;
+	    return createErrorResponse( e, 
+					"Unexpected JSON-RPC error: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					request.getID()
+					);
 
 	} catch( JSONException e ) {
 	    
-	    return null;
-	    
+	    return createErrorResponse( e, 
+					"Unexpected JSON error: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					request.getID()
+					);
+
 	}
     }
-    */
+    
 
 
     private JSONRPCResponse execute( JSONRPCRequest request ) 
-	throws JSONRPCException,
-	       JSONException {
+	throws JSONException,
+	       JSONRPCException,
+	       SecurityException {
 	
 	this.checkVersion(request);
 	
@@ -117,6 +219,8 @@ public class JSONRPC {
 	    throw new JSONRPCException( "The __jsonclass__ param is not supported." );
 
 	
+	String objectName    = null;
+	String methodName    = null;
 	try {
 	    // May throw JSONException
 	    Class<?>[] paramClasses = this.createParamClassArray( request );
@@ -133,8 +237,7 @@ public class JSONRPC {
 
 	    String request_name = request.getMethod().getString();
 	    int pointIndex      = request_name.lastIndexOf(".");
-	    String objectName    = null;
-	    String methodName   = null;
+
 	    
 	    if( pointIndex == -1 ) {
 		methodName = request_name;
@@ -150,47 +253,78 @@ public class JSONRPC {
 
 	    
 	    // Locate the object to operate on
-	    Object invocationObject = this;
-	    if( objectName != null && !objectName.equals("this") ) {
+	    RPCInvocationTarget invocationTarget = null;
+	    if( objectName == null ) {
 		
-		invocationObject = this.objectMap.get( objectName );
-		if( invocationObject == null )
+		// There is no object/class name passed. Use default name (if set)
+		if( this.defaultInvocationTargetName != null )
+		    invocationTarget = this.targetMap.get( defaultInvocationTargetName );
+
+	    } else {
+
+		// The call includes an object name -> try to locate target
+		invocationTarget = this.targetMap.get( objectName );
+		if( invocationTarget == null )
 		    throw new JSONRPCException( "Object '" + objectName + "' not found." );
 		
 	    }
-		
 	    
-
-	    // On which object to invoke the method?
-	    // For testing purposes: this
-	    
-	    // ...
-
+	    // Object found?
+	    if( invocationTarget == null )
+		throw new JSONRPCException( "Object '" + objectName + "' not found." );
+	   
       
 
 
 	    // Resolve method (may throw NoSuchMethodException or SecurityException)
-	    Method method = invocationObject.getClass().getMethod( methodName,
+	    Method method = invocationTarget.getClass().getMethod( methodName,
 								   paramClasses 
 								   );
 
-	    Object result = method.invoke( invocationObject,
-					   paramObjects
-					   );
+	    if( !invocationTarget.checkMethodInvocation(method) )
+		throw new SecurityException( "Calling '" + request_name + "' is forbidden. " );
 	    
-	    return null;
-	} catch( JSONException e ) {
-	    throw new JSONRPCException( "JSONException: " + e.getMessage() );
+
+	    Object resultObject = method.invoke( invocationTarget,
+						 paramObjects
+						 );
+	    
+	    // TOTO: the result object needs to be converted to its proper type
+	    JSONValue result;
+	    if( resultObject == null )
+		result = JSONValue.NULL;
+	    else
+		result = new JSONString( resultObject.toString() );
+
+	    return new DefaultJSONRPCResponse( result,
+					       null,   // no error
+					       request.getID()
+					       );
+
 	} catch( NoSuchMethodException e ) {
-	    throw new JSONRPCException( "NoSuchMethodException: " + e.getMessage() );
-	} catch( SecurityException e ) {
-	    throw new JSONRPCException( "SecurityException: " + e.getMessage() );  
+	    return createErrorResponse( e, 
+					"Method not found: " + e.getMessage(), 
+					JSONRPCError.CODE_METHOD_NOT_FOUND,
+					request.getID()
+					);
 	} catch( IllegalAccessException e ) {
-	    throw new JSONRPCException( "IllegalAccessException: " + e.getMessage() );
+	    return createErrorResponse( e, 
+					"Illegal Access: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					request.getID()
+					);
 	} catch( IllegalArgumentException e ) {
-	    throw new JSONRPCException( "IllegalArgumentException: " + e.getMessage() );
+	    return createErrorResponse( e, 
+					"Illegal params: " + e.getMessage(), 
+					JSONRPCError.CODE_INVALID_PARAMS,
+					request.getID()
+					);
 	} catch( InvocationTargetException e ) {
-	    throw new JSONRPCException( "InvocationTargetException: " + e.getMessage() );
+	    return createErrorResponse( e, 
+					"Invocation error: " + e.getMessage(), 
+					JSONRPCError.CODE_SERVER_ERROR_MIN,
+					request.getID()
+					);
 	}
 
     }
@@ -362,63 +496,63 @@ public class JSONRPC {
 	try {
 	    System.out.println( "Initializing the JSONRPC request ..." );
 
+	    JSONRPCResponse response = null;
 	    
 	    ikrs.json.JSONArray params = new ikrs.json.JSONArray();
 	    params.getArray().add( new ikrs.json.JSONNumber(new Integer(1)) );
 	    params.getArray().add( new ikrs.json.JSONString("test_A") );
 	    params.getArray().add( new ikrs.json.JSONBoolean(true) );
-	    JSONRPCRequest request = new DefaultJSONRPCRequest( "this.doAnything",
+	    JSONRPCRequest request = new DefaultJSONRPCRequest( "doAnything",
 								params,
 								new Integer(1234)   // id
 								);
 	    System.out.println( request.toJSONString() );
 	    
-
-	    /*
-	    ikrs.json.JSONArray params = new ikrs.json.JSONArray();
-	    JSONRPCRequest request = new DefaultJSONRPCRequest( "doSomething",
-								params,
-								new Integer(5678)   // id
-								);
-	    System.out.println( request.toString() );
-	    */
 	    
 	    System.out.println( "Creating JSONRPC ..." );
-	    JSONRPC rpc = new JSONRPC();
+	    JSONRPCHandler rpc = new JSONRPCHandler();
+	    rpc.addInvocationTarget( "x", new TestInvocationTarget(), true );
+	    //rpc.addInvocationTarget( "this", new TestInvocationTarget() );
+
 
 	    System.out.println( "Executing the request ..." );
-	    rpc.execute( request );
+	    response = rpc.call( request );
+	    System.out.println( "Response: " + response.toJSONString() );
 
 	    String requestString = "{'jsonrpc' : '2.0', 'method': 'doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }";
-	    rpc.execute( requestString );
+	    response = rpc.call( requestString );
+	    System.out.println( "Response: " + response.toJSONString() );
 
 
 	    requestString = "{'jsonrpc' : '2.0', '__jsonclass__': {}, 'method': 'doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }";	
 	    System.out.println( "This request should cause an error, because the '__jsonclass__' param is not supported: " + requestString );
-	    try {
-		rpc.execute( requestString );
-	    } catch( JSONRPCException e ) {
-		System.out.println( "Error: " + e.getMessage() );
-	    }
+	    //try {
+		response = rpc.call( requestString );
+		System.out.println( "Response: " + response.toJSONString() );
+		//} catch( JSONRPCException e ) {
+		//System.out.println( "Error: " + e.getMessage() );
+		//}
 
 
 	    requestString = "{'jsonrpc' : '2.0', 'method': 'y.doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }";	
 	    System.out.println( "This request should cause an error, because the object 'y' is unknown: " + requestString );
-	    try {
-		rpc.execute( requestString );
-	    } catch( JSONRPCException e ) {
-		System.out.println( "Error: " + e.getMessage() );
-	    }
+	    //try {
+		response = rpc.call( requestString );
+		System.out.println( "Response: " + response.toJSONString() );
+		//} catch( JSONRPCException e ) {
+		//System.out.println( "Error: " + e.getMessage() );
+		//}
 
 
 
 	    requestString = "{'jsonrpc' : '2.0', 'method': 'doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 } }";	
 	    System.out.println( "This request should proceed though there is a trailing '}' at the end. The parser should not read that far: " + requestString );
-	    try {
-		rpc.execute( requestString );
-	    } catch( JSONRPCException e ) {
-		System.out.println( "Error: " + e.getMessage() );
-	    }
+	    // try {
+		response = rpc.call( requestString );
+		System.out.println( "Response: " + response.toJSONString() );
+		//} catch( JSONRPCException e ) {
+		//	System.out.println( "Error: " + e.getMessage() );
+		//}
 
 	    
 	    System.out.println( "Done." );

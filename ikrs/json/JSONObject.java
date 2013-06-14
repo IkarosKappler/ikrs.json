@@ -135,7 +135,7 @@ public class JSONObject
 
 	// The member name set is valid.
 	// Now convert the index map to an array/list
-	List<JSONValue> list = new ArrayList( Math.max(size,1) );
+	List<JSONValue> list = new ArrayList<JSONValue>( Math.max(size,1) );
 	Iterator<Integer> indexIter = indexMap.keySet().iterator(); // This is a SORTED SET :)
 	while( indexIter.hasNext() ) {
 

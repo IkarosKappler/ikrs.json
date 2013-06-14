@@ -164,7 +164,9 @@ public class JSONString
 	    
 	    char c = string.charAt(i);
 	    switch( c ) {
-	    case '\'': writer.write( "\\'" ); break;
+		// There are double quotation marks, so there is no need to escape single quotes.
+		// Additionally escaping ' is not part of the JSON specification!
+		// case '\'': writer.write( "\\'" ); break;
 	    case '"': writer.write( "\\\"" ); break;
 	    case '\n': writer.write( "\\n" ); break;
 	    case '\t': writer.write( "\\t" ); break;
