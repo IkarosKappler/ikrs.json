@@ -565,10 +565,23 @@ public class JSONRPCHandler {
     }
     
     /**
-     * 
+     * This method converts the JSON params passed in the request to
+     * an array of Java objects.
+     *
+     * Only numbers, booleans, null and strings can be converted; arrays
+     * and objects are not allowed in this version.
+     *
+     * @param request The request to fetch the params from (must not be null).
+     * @return The passed params as an array of Objects (basic types).
+     * @throws NullPointerException If the request is null.
+     * @throws JSONException If the passed request contains invalid params.
+     * @throws JSONRPCException If the passed params do not match the type restrictions 
+     *                          (no arrays or objects) or if the param entity is not
+     *                          array compatible.
      **/
     private Object[] createParamObjectArray( JSONRPCRequest request ) 
-	throws JSONException,
+	throws NullPointerException,
+	       JSONException,
 	       JSONRPCException {
 	
 	if( request.getParams() == null || request.getParams().isNull() )
@@ -601,26 +614,51 @@ public class JSONRPCHandler {
     }
 
 
+    /**
+     * This method builds a JSONRPCRequest from the JSON data provided by the given reader.
+     * 
+     * @param reader The reader to read from (must not be null).
+     * @return The next JSONRPCRequest from the reader (will not read more).
+     * @throws NullPointerException If reader is null.
+     * @throws JSONSyntaxException If the provided data does not represent a valid JSON value.
+     * @throws JSONRPCException If the provided JSON value does not represent a valid JSON-RPC request.
+     * @throws JSONException If any type errors occur.
+     * @throws IOException If any IO errors occur while reading from the reader.
+     **/
     public JSONRPCRequest buildRPCRequest( Reader reader ) 
-	throws JSONSyntaxException,
+	throws NullPointerException,
+	       JSONSyntaxException,
+	       JSONRPCException,
 	       JSONException,
 	       IOException {
+
+	if( reader == null )
+	    throw new NullPointerException( "Cannot read JSONRPCRequest from null reader." );
+
 
 	// Create JSONRPCValueFactory 
 	JSONValueFactory factory = new JSONRPCValueFactory();	    
 
+
 	// Initialising parser/builder 
 	ConfigurableJSONBuilder b  = new ConfigurableJSONBuilder( reader, false, factory );
+
 	
 	// start the pasrer
 	b.parse();
 
 	JSONValue json = b.getResult();
-	//System.out.println( "JSON object: " + json.toString() );
 	
+	if( json == null )
+	    throw new JSONSyntaxException( "The passed data is empty and contains no JSON value." );
+	
+
+	//System.out.println( "JSON object: " + json.toString() );	
 	if( !(json instanceof JSONRPCRequest) )
-	    throw new JSONException( "Retrieved value is NOT an instance of JSONRPCRequest. Found: " + json.getClass().getName() );
+	    throw new JSONRPCException( "Retrieved value is NOT an instance of JSONRPCRequest. Found: " + json.getClass().getName() );
 	
+
+	// Explicit type cast :(
 	return (JSONRPCRequest)json;
     }
 
@@ -662,33 +700,21 @@ public class JSONRPCHandler {
 
 	    requestString = "{'jsonrpc' : '2.0', '__jsonclass__': {}, 'method': 'doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }";	
 	    System.out.println( "This request should cause an error, because the '__jsonclass__' param is not supported: " + requestString );
-	    //try {
-		response = rpc.call( requestString );
-		System.out.println( "Response: " + response.toJSONString() );
-		//} catch( JSONRPCException e ) {
-		//System.out.println( "Error: " + e.getMessage() );
-		//}
+	    response = rpc.call( requestString );
+	    System.out.println( "Response: " + response.toJSONString() );
 
 
 	    requestString = "{'jsonrpc' : '2.0', 'method': 'y.doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 }";	
 	    System.out.println( "This request should cause an error, because the object 'y' is unknown: " + requestString );
-	    //try {
-		response = rpc.call( requestString );
-		System.out.println( "Response: " + response.toJSONString() );
-		//} catch( JSONRPCException e ) {
-		//System.out.println( "Error: " + e.getMessage() );
-		//}
+	    response = rpc.call( requestString );
+	    System.out.println( "Response: " + response.toJSONString() );
 
 
 
 	    requestString = "{'jsonrpc' : '2.0', 'method': 'doAnything', 'params' : [ 2, 'test_B', false ], 'id' : 1234 } }";	
 	    System.out.println( "This request should proceed though there is a trailing '}' at the end. The parser should not read that far: " + requestString );
-	    // try {
-		response = rpc.call( requestString );
-		System.out.println( "Response: " + response.toJSONString() );
-		//} catch( JSONRPCException e ) {
-		//	System.out.println( "Error: " + e.getMessage() );
-		//}
+	    response = rpc.call( requestString );
+	    System.out.println( "Response: " + response.toJSONString() );
 
 	    
 	    System.out.println( "Done." );
