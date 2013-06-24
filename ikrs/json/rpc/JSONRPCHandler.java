@@ -5,6 +5,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -368,7 +369,14 @@ public class JSONRPCHandler {
 	    Method method = invocationTarget.getClass().getMethod( methodName,
 								   paramClasses 
 								   );
-
+	    
+	    if( !Modifier.isPublic(method.getModifiers()) ) {
+		return this.createErrorResponse( new JSONRPCException( "Calling '" + request_name + "' is not allowed (method is not public)." ), 
+						 "Calling '" + request_name + "' is not allowed (method is not public).", 
+						 JSONRPCError.CODE_INVALID_REQUEST, 
+						 request.getID()   
+						 );
+	    }
 	    if( !invocationTarget.checkMethodInvocation(method) ) {
 		//throw new SecurityException( "Calling '" + request_name + "' is forbidden. " );
 		return this.createErrorResponse( new JSONRPCException( "Calling '" + request_name + "' is forbidden." ), 

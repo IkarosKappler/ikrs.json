@@ -199,22 +199,8 @@ public class ConfigurableJSONBuilder
 
     @Override
     protected void fireNumberRead( String number ) {
-	/*
-	try {
-	    try {
-		// Try to parse Integer
-		this.currentMemberValue = new JSONNumber( new Integer(number) );
-	    } catch( NumberFormatException e ) {
-		this.currentMemberValue = new JSONNumber( new Double(number) );
-	    }
-	} catch( NumberFormatException e ) {
-	    // Store as a string??? Throw exception??? 
-	    // Actually this means there is a type error in the parser, so this excption should NEVER occur
-	    //throw new RuntimeException( "Ooops, this number is invalid: " + number );
-	    this.currentMemberValue = new JSONString( number );
-	}
-	*/
 
+	/*
 	Number num = null;
 	try {
 	    try {
@@ -235,8 +221,26 @@ public class ConfigurableJSONBuilder
 	    // Actually this means there is a type error in the parser, so this excption should NEVER occur
 	    throw new RuntimeException( "Ooops, this number is invalid: " + number );
 	    //this.currentMemberValue = new JSONString( number );
-	}
+	    } */
+	
+	try {
 
+	    // May throw NumberFormatException
+	    Number num =  JSONNumber.parseNumber(number);
+
+	    if( this.currentMemberName != null )
+		currentMemberValue = this.factory.createNumber( num, this.currentMemberName );
+	    else if( this.currentArrayIndex != null )
+		this.currentMemberValue = this.factory.createNumber( num, this.currentArrayIndex );
+	    else
+		this.currentMemberValue = this.factory.createNumber( num );
+
+	} catch( NumberFormatException e ) {
+	    // Store as a string??? Throw exception??? 
+	    // Actually this means there is a type error in the parser, so this excption should NEVER occur
+	    throw new RuntimeException( "Ooops, this number is invalid: " + number );
+	    //this.currentMemberValue = new JSONString( number );
+	}
 	
     }
 

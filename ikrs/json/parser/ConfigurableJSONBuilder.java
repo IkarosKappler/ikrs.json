@@ -199,29 +199,6 @@ public class ConfigurableJSONBuilder
 
     @Override
     protected void fireNumberRead( String number ) {
-
-	/*
-	Number num = null;
-	try {
-	    try {
-		// Try to parse Integer
-		num = new Integer(number);
-	    } catch( NumberFormatException e ) {
-		num = new Double(number);
-	    }
-
-	    if( this.currentMemberName != null )
-		currentMemberValue = this.factory.createNumber( num, this.currentMemberName );
-	    else if( this.currentArrayIndex != null )
-		this.currentMemberValue = this.factory.createNumber( num, this.currentArrayIndex );
-	    else
-		this.currentMemberValue = this.factory.createNumber( num );
-	} catch( NumberFormatException e ) {
-	    // Store as a string??? Throw exception??? 
-	    // Actually this means there is a type error in the parser, so this excption should NEVER occur
-	    throw new RuntimeException( "Ooops, this number is invalid: " + number );
-	    //this.currentMemberValue = new JSONString( number );
-	    } */
 	
 	try {
 
