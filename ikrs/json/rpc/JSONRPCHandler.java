@@ -29,7 +29,8 @@ import ikrs.json.parser.*;
  * @author Ikaros Kappler
  * @date 2013-06-03
  * @modified 2013-07-16 Ikaros Kappler (JSONObject and JSONArray param type support added).
- * @version 1.0.1
+ * @modified 2013-06-16 Ikaros Kappler (unwrapJSONValues flag added).
+ * @version 1.0.2
  **/
 
 
@@ -49,15 +50,51 @@ public class JSONRPCHandler {
      **/
     private Map<String,RPCInvocationTarget> targetMap;
     
+    /**
+     * This flag indicates if the handler should use exact type matching to
+     * locate rpc-methods (unwrap JSON values) or just look for methods that
+     * expect JSOValue params.
+     **/
+    private boolean unwrapJSONValues;
     
     /**
      * Create a new empty JSON-RPC handler.
+     *
+     * By default the JSONRPCHandler _unwraps_ the passed JSONValue params to
+     * match requested methods.
+     *
      **/
     public JSONRPCHandler() {
 	super();
 	
 	this.targetMap                   = new TreeMap<String,RPCInvocationTarget>();
 	this.defaultInvocationTargetName = null;
+	this.unwrapJSONValues( true );
+    }
+
+    
+    /**
+     * This method set the 'unwrapJSONValues' flag.
+     *
+     * If set to true the handler will unwrap the passed JSON-RPC params
+     * to their actual Java types to try to match the requested method.
+     *
+     * If set to false all params are considered to be of type 'JSONValue'
+     * and all methods only accept JSONValue params.
+     *
+     * @params b The new value for the 'unwrapJSONValues' flag.
+     **/
+    public void unwrapJSONValues( boolean b ) {
+	this.unwrapJSONValues = b;
+    }
+    
+    /**
+     * This method returns the value of the 'unwrapJSONValues' flag.
+     *
+     * @return The value of the 'unwrapJSONValues' flag.
+     **/
+    public boolean unwrapJSONValues() {
+	return this.unwrapJSONValues;
     }
 
     /**
@@ -527,21 +564,24 @@ public class JSONRPCHandler {
 
 	for( int i = 0; i < params.getArray().size(); i++ ) {
 	    JSONValue param = params.getArray().get(i);
-	    if( param.isNull() )
+
+	    if( !this.unwrapJSONValues() )
+		paramClasses[i] = JSONValue.class;
+	    else if( param.isNull() )
 		paramClasses[i] = Object.class;
 	    else if( param.isBoolean() )
 		paramClasses[i] = Boolean.class;
-		else if( param.isNumber() ) 
-		    paramClasses[i] = param.getNumber().getClass(); // Double or Integer
-		else if( param.isString() )
-		    paramClasses[i] = String.class;
-		else if( param.isArray() )
-		    paramClasses[i] = JSONArray.class;
-		else if( param.isObject() )
-		    paramClasses[i] = JSONObject.class;
-		else 
-		    throw new JSONRPCException( "datatype at param " + i +" is not supported in the param list." );
-	    }
+	    else if( param.isNumber() ) 
+		paramClasses[i] = param.getNumber().getClass(); // Double or Integer
+	    else if( param.isString() )
+		paramClasses[i] = String.class;
+	    else if( param.isArray() )
+		paramClasses[i] = JSONArray.class;
+	    else if( param.isObject() )
+		paramClasses[i] = JSONObject.class;
+	    else 
+		throw new JSONRPCException( "datatype at param " + i +" is not supported in the param list." );
+	}
 	
 	return paramClasses;
 
@@ -607,7 +647,9 @@ public class JSONRPCHandler {
 	    paramObjects = new Object[ request.getParams().getArray().size() ];
 	    for( int i = 0; i < request.getParams().getArray().size(); i++ ) {
 		JSONValue param = request.getParams().getArray().get(i);
-		if( param.isNull() )
+		if( !this.unwrapJSONValues() )
+		    paramObjects[i] = param;
+		else if( param.isNull() )
 		    paramObjects[i] = null;
 		else if( param.isBoolean() )
 		    paramObjects[i] = param.getBoolean();
@@ -735,12 +777,14 @@ public class JSONRPCHandler {
 	    System.out.println( "Response: " + response.toJSONString() );
 
 	    
+	    // Since version 1.0.1 also param types 'Array' ...
 	    requestString = "{'jsonrpc' : '2.0', 'method': 'printJSONArray', 'params' : [ [ 1, 2, 3, 4, 5 ] ], 'id' : 1234 } }";	
 	    System.out.println( "This request should print a JSONArray on stdout: " + requestString );
 	    response = rpc.call( requestString );
 	    System.out.println( "Response: " + response.toJSONString() );
 
 	    
+	    // ... and 'Object' are supported.
 	    requestString = "{'jsonrpc' : '2.0', 'method': 'printJSONObject', 'params' : [ { 'A' : 3, 'B': 2, 'C': 1, 'D': 0 } ], 'id' : 1234 } }";	
 	    System.out.println( "This request should print a JSONArray on stdout: " + requestString );
 	    response = rpc.call( requestString );
